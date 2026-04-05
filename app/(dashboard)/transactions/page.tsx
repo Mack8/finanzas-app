@@ -1,17 +1,27 @@
 import { redirect } from 'next/navigation'
 import { CreateTransactionForm } from '@/components/transactions/CreateTransactionForm'
 import { RefreshExchangeRateButton } from '@/components/transactions/RefreshExchangeRateButton'
+import { TransactionFilters } from '@/components/transactions/TransactionFilters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getLatestExchangeRate, isExchangeRateSyncConfigured } from '@/lib/bccr/exchange-rate'
 import { formatDate, formatMoney } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
+import { buildTransactionFilters } from '@/lib/transactions'
+import { getCurrentMonthCR } from '@/lib/dashboard'
 import type { Category, ExchangeRate, Transaction } from '@/types/domain'
 
 type CategoryOption = Pick<Category, 'id' | 'name' | 'type' | 'color'>
 
 type RecentTransaction = Pick<
   Transaction,
-  'id' | 'date' | 'description' | 'amount' | 'currency' | 'amount_crc' | 'transaction_type'
+  | 'id'
+  | 'date'
+  | 'description'
+  | 'amount'
+  | 'currency'
+  | 'amount_crc'
+  | 'transaction_type'
+  | 'notes'
 > & {
   category: CategoryOption | null
 }
@@ -31,7 +41,11 @@ const transactionTypeLabels: Record<Transaction['transaction_type'], string> = {
   reimbursement: 'Reembolso',
 }
 
-export default async function TransactionsPage() {
+export default async function TransactionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -39,32 +53,35 @@ export default async function TransactionsPage() {
     redirect('/login')
   }
 
+  const params = await searchParams
+  const { year, month } = getCurrentMonthCR()
+  const monthStr = `${year}-${String(month).padStart(2, '0')}`
+  const defaultParams = { month: monthStr, ...params }
+  const filters = buildTransactionFilters(defaultParams)
+
+  let txQuery = supabase
+    .from('transactions')
+    .select(`
+      id, date, description, amount, currency, amount_crc, transaction_type, notes,
+      category:categories ( id, name, type, color )
+    `)
+    .order('date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  if (filters.dateFrom) txQuery = txQuery.gte('date', filters.dateFrom)
+  if (filters.dateTo) txQuery = txQuery.lte('date', filters.dateTo)
+  if (filters.categoryId) txQuery = txQuery.eq('category_id', filters.categoryId)
+  if (filters.transactionType) txQuery = txQuery.eq('transaction_type', filters.transactionType)
+  if (filters.currency) txQuery = txQuery.eq('currency', filters.currency)
+
   const [{ data: categoriesData }, { data: transactionsData }] = await Promise.all([
     supabase
       .from('categories')
       .select('id, name, type, color, sort_order')
       .eq('is_active', true)
       .order('sort_order', { ascending: true }),
-    supabase
-      .from('transactions')
-      .select(`
-        id,
-        date,
-        description,
-        amount,
-        currency,
-        amount_crc,
-        transaction_type,
-        category:categories (
-          id,
-          name,
-          type,
-          color
-        )
-      `)
-      .order('date', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(12),
+    txQuery,
   ])
 
   const categories = (categoriesData ?? []) as CategoryOption[]
@@ -80,14 +97,13 @@ export default async function TransactionsPage() {
   const exchangeRateSyncConfigured = isExchangeRateSyncConfigured()
 
   const totals = transactions.reduce(
-    (accumulator, transaction) => {
-      if (transaction.category?.type === 'income') {
-        accumulator.income += transaction.amount_crc
+    (acc, t) => {
+      if (t.category?.type === 'income') {
+        acc.income += t.amount_crc
       } else {
-        accumulator.expense += transaction.amount_crc
+        acc.expense += t.amount_crc
       }
-
-      return accumulator
+      return acc
     },
     { income: 0, expense: 0 }
   )
@@ -96,16 +112,14 @@ export default async function TransactionsPage() {
     <div className="space-y-6">
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold tracking-tight">Transacciones</h2>
-        <p className="text-muted-foreground">
-          Primer slice de Fase 2: categorías activas, alta de movimientos y historial reciente.
-        </p>
+        <p className="text-muted-foreground">Registrá y consultá tus movimientos financieros.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card size="sm">
           <CardHeader>
-            <CardTitle>Total reciente</CardTitle>
-            <CardDescription>Últimas {transactions.length} transacciones</CardDescription>
+            <CardTitle>Resultados</CardTitle>
+            <CardDescription>Transacciones en el período</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-semibold">{transactions.length}</p>
@@ -155,12 +169,14 @@ export default async function TransactionsPage() {
               </div>
             ) : (
               <p className="mt-3 text-sm text-warning">
-                Configurá BCCR y `SUPABASE_SERVICE_ROLE_KEY` para sincronizar esta tasa automáticamente.
+                Configurá BCCR y `SUPABASE_SERVICE_ROLE_KEY` para sincronizar esta tasa.
               </p>
             )}
           </CardContent>
         </Card>
       </div>
+
+      <TransactionFilters categories={categories} defaultMonth={monthStr} />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,440px)_1fr]">
         <CreateTransactionForm
@@ -170,15 +186,13 @@ export default async function TransactionsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Historial reciente</CardTitle>
-            <CardDescription>
-              Movimientos más recientes registrados en tu cuenta.
-            </CardDescription>
+            <CardTitle>Historial</CardTitle>
+            <CardDescription>Hasta 50 movimientos según los filtros activos.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {transactions.length === 0 ? (
               <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-                Todavía no hay transacciones registradas. Creá la primera desde el formulario.
+                No hay transacciones para el período seleccionado.
               </div>
             ) : (
               transactions.map(transaction => (
@@ -194,7 +208,6 @@ export default async function TransactionsPage() {
                       />
                       <p className="font-medium">{transaction.description}</p>
                     </div>
-
                     <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
                       <span>{formatDate(transaction.date)}</span>
                       <span>
@@ -204,8 +217,10 @@ export default async function TransactionsPage() {
                       </span>
                       <span>{transactionTypeLabels[transaction.transaction_type]}</span>
                     </div>
+                    {transaction.notes && (
+                      <p className="text-sm text-muted-foreground italic">{transaction.notes}</p>
+                    )}
                   </div>
-
                   <div className="space-y-1 text-left md:text-right">
                     <p className="font-semibold">
                       {formatMoney(transaction.amount, transaction.currency)}
