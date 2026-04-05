@@ -1,6 +1,8 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { CreateTransactionForm } from '@/components/transactions/CreateTransactionForm'
+import { DeleteTransactionDialog } from '@/components/transactions/DeleteTransactionDialog'
+import { EditTransactionDialog } from '@/components/transactions/EditTransactionDialog'
 import { RefreshExchangeRateButton } from '@/components/transactions/RefreshExchangeRateButton'
 import { TransactionFilters } from '@/components/transactions/TransactionFilters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -224,13 +226,26 @@ export default async function TransactionsPage({
                       <p className="text-sm text-muted-foreground italic">{transaction.notes}</p>
                     )}
                   </div>
-                  <div className="space-y-1 text-left md:text-right">
-                    <p className="font-semibold">
-                      {formatMoney(transaction.amount, transaction.currency)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatMoney(transaction.amount_crc, 'CRC')}
-                    </p>
+                  <div className="flex flex-col items-start gap-3 md:items-end">
+                    <div className="space-y-1 text-left md:text-right">
+                      <p className="font-semibold">
+                        {formatMoney(transaction.amount, transaction.currency)}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatMoney(transaction.amount_crc, 'CRC')}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <EditTransactionDialog
+                        transaction={transaction}
+                        categories={categories}
+                        latestExchangeRate={latestExchangeRate}
+                      />
+                      <DeleteTransactionDialog
+                        transactionId={transaction.id}
+                        description={transaction.description}
+                      />
+                    </div>
                   </div>
                 </div>
               ))

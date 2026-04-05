@@ -123,3 +123,107 @@ export async function createTransactionAction(
     message: 'Transacción registrada correctamente.',
   }
 }
+
+export type DeleteTransactionState = {
+  status: 'idle' | 'error' | 'success'
+  message?: string
+}
+
+export async function updateTransactionAction(
+  id: string,
+  _prevState: TransactionActionState,
+  formData: FormData
+): Promise<TransactionActionState> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { status: 'error', message: 'Tu sesión ya no es válida. Volvé a iniciar sesión.' }
+
+  const parsed = transactionSchema.safeParse({
+    date: formData.get('date'),
+    description: formData.get('description'),
+    amount: formData.get('amount'),
+    currency: formData.get('currency'),
+    categoryId: formData.get('categoryId'),
+    transactionType: formData.get('transactionType'),
+    notes: formData.get('notes'),
+  })
+  if (!parsed.success) {
+    return {
+      status: 'error',
+      message: 'Revisá los datos del formulario.',
+      fieldErrors: parsed.error.flatten().fieldErrors as TransactionFieldErrors,
+    }
+  }
+
+  const values = parsed.data
+
+  const { data: category, error: categoryError } = await supabase
+    .from('categories').select('id').eq('id', values.categoryId).eq('user_id', user.id).maybeSingle()
+  if (categoryError || !category) {
+    return { status: 'error', message: 'La categoría seleccionada no es válida para tu cuenta.' }
+  }
+
+  let latestExchangeRate: ExchangeRateSnapshot | null = null
+  if (values.currency === 'USD') {
+    try {
+      latestExchangeRate = await getLatestExchangeRate({ ensureFresh: true })
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'No se pudo obtener el tipo de cambio actual.',
+      }
+    }
+  }
+
+  let amountCRC: number
+  let exchangeRateId: string | null
+  try {
+    const resolved = resolveAmountCRC(values.amount, values.currency, latestExchangeRate)
+    amountCRC = resolved.amountCRC
+    exchangeRateId = resolved.exchangeRateId
+  } catch (error) {
+    return {
+      status: 'error',
+      message: error instanceof Error ? error.message : 'No se pudo calcular el monto en colones.',
+    }
+  }
+
+  const { error: updateError } = await supabase
+    .from('transactions')
+    .update({
+      date: values.date,
+      description: values.description,
+      amount: values.amount,
+      currency: values.currency,
+      amount_crc: amountCRC,
+      exchange_rate_id: exchangeRateId,
+      category_id: values.categoryId,
+      transaction_type: values.transactionType,
+      notes: values.notes || null,
+    })
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (updateError) return { status: 'error', message: 'No se pudo actualizar la transacción. Intentá de nuevo.' }
+
+  revalidatePath('/transactions')
+  return { status: 'success', message: 'Transacción actualizada correctamente.' }
+}
+
+export async function deleteTransactionAction(
+  id: string,
+  _prevState: DeleteTransactionState,
+  _formData: FormData
+): Promise<DeleteTransactionState> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { status: 'error', message: 'Tu sesión ya no es válida.' }
+
+  const { error } = await supabase
+    .from('transactions').delete().eq('id', id).eq('user_id', user.id)
+
+  if (error) return { status: 'error', message: 'No se pudo eliminar la transacción.' }
+
+  revalidatePath('/transactions')
+  return { status: 'success' }
+}
