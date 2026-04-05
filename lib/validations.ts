@@ -73,7 +73,25 @@ export const categorySchema = z.object({
   message: 'Seleccioná la moneda del presupuesto.',
 })
 
+export const debtSchema = z.object({
+  name: z.string()
+    .trim()
+    .min(2, 'El nombre debe tener al menos 2 caracteres')
+    .max(80, 'El nombre no puede exceder 80 caracteres'),
+  monthlyAmount: z.coerce.number()
+    .finite('El monto debe ser válido')
+    .positive('El monto debe ser mayor a 0'),
+  currency: z.enum(['CRC', 'USD'], { error: 'Moneda inválida' }),
+  totalInstallments: z.coerce.number()
+    .int('El número de cuotas debe ser entero')
+    .min(1, 'Debe tener al menos 1 cuota')
+    .max(360, 'No puede exceder 360 cuotas'),
+  startDate: z.string().min(1, 'La fecha de inicio es obligatoria'),
+  notes: z.string().trim().max(500, 'Las notas no pueden exceder 500 caracteres').optional().or(z.literal('')),
+})
+
 export type LoginFormValues = z.infer<typeof loginSchema>
 export type RegisterFormValues = z.infer<typeof registerSchema>
 export type TransactionFormValues = z.infer<typeof transactionSchema>
 export type CategoryFormValues = z.infer<typeof categorySchema>
+export type DebtFormValues = z.infer<typeof debtSchema>
