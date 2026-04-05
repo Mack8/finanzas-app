@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   updateCategoryAction,
-  type UpdateCategoryState,
+  type CategoryActionState,
 } from '@/app/(dashboard)/settings/actions'
 
 type CategoryData = {
@@ -29,7 +29,7 @@ type CategoryData = {
 const selectClassName =
   'flex h-8 w-full rounded-lg border border-input bg-background px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50'
 
-const initialState: UpdateCategoryState = { status: 'idle' }
+const initialState: CategoryActionState = { status: 'idle' }
 
 export function EditCategoryDialog({ category }: { category: CategoryData }) {
   const [open, setOpen] = useState(false)
@@ -60,8 +60,6 @@ export function EditCategoryDialog({ category }: { category: CategoryData }) {
           <DialogTitle>Editar categoría</DialogTitle>
         </DialogHeader>
         <form key={formKey} action={formAction} className="space-y-4">
-          {/* Hidden field so action can detect type changes */}
-          <input type="hidden" name="originalType" value={category.type} />
 
           <div className="space-y-2">
             <Label htmlFor={`cat-name-${category.id}`}>Nombre</Label>

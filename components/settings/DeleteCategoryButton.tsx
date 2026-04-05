@@ -70,7 +70,7 @@ export function DeleteCategoryButton({ categoryId, categoryName, transactionCoun
         </DialogHeader>
         <form key={formKey} action={formAction}>
           {state.message && (
-            <p className="mb-3 text-sm text-danger">{state.message}</p>
+            <p aria-live="polite" className="mb-3 text-sm text-danger">{state.message}</p>
           )}
           <DialogFooter showCloseButton>
             <Button type="submit" variant="destructive" disabled={pending}>

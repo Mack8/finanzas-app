@@ -128,12 +128,6 @@ export async function toggleCategoryStatusAction(formData: FormData) {
   revalidateCategorySurfaces()
 }
 
-export type UpdateCategoryState = {
-  status: 'idle' | 'error' | 'success'
-  message?: string
-  fieldErrors?: CategoryFieldErrors
-}
-
 export type DeleteCategoryState = {
   status: 'idle' | 'error' | 'success'
   message?: string
@@ -141,9 +135,9 @@ export type DeleteCategoryState = {
 
 export async function updateCategoryAction(
   id: string,
-  _prevState: UpdateCategoryState,
+  _prevState: CategoryActionState,
   formData: FormData
-): Promise<UpdateCategoryState> {
+): Promise<CategoryActionState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { status: 'error', message: 'Tu sesión ya no es válida. Volvé a iniciar sesión.' }
@@ -164,7 +158,16 @@ export async function updateCategoryAction(
   }
 
   const values = parsed.data
-  const originalType = String(formData.get('originalType') ?? '')
+
+  // Fetch current type from DB to avoid client-supplied originalType bypass
+  const { data: currentCategory } = await supabase
+    .from('categories')
+    .select('type')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  const originalType = currentCategory?.type ?? values.type
 
   // If type is changing, block if category has associated transactions
   if (values.type !== originalType) {

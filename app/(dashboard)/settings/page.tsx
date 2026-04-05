@@ -43,6 +43,7 @@ export default async function SettingsPage() {
         is_active,
         sort_order
       `)
+      .eq('user_id', user.id)
       .order('type', { ascending: true })
       .order('sort_order', { ascending: true }),
     supabase
