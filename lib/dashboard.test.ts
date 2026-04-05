@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeTotals, computeBudgetProgress } from './dashboard'
+import { computeTotals, computeBudgetProgress, getCurrentMonthCR } from './dashboard'
 
 describe('computeTotals', () => {
   it('sums income, variable and fixed expenses, savings correctly', () => {
@@ -55,5 +55,14 @@ describe('computeBudgetProgress', () => {
   it('can exceed 100% when over budget', () => {
     const result = computeBudgetProgress(150000, 100000, 1)
     expect(result.usedPercent).toBeCloseTo(150)
+  })
+})
+
+describe('getCurrentMonthCR', () => {
+  it('returns a valid year and month number', () => {
+    const { year, month } = getCurrentMonthCR()
+    expect(year).toBeGreaterThanOrEqual(2024)
+    expect(month).toBeGreaterThanOrEqual(1)
+    expect(month).toBeLessThanOrEqual(12)
   })
 })

@@ -31,6 +31,12 @@ export type DashboardSummary = {
   budgetProgress: BudgetProgressItem[]
 }
 
+const VALID_CATEGORY_TYPES = ['income', 'fixed_expense', 'variable_expense', 'savings'] as const
+
+function isValidCategoryType(value: unknown): value is CategoryType {
+  return typeof value === 'string' && (VALID_CATEGORY_TYPES as readonly string[]).includes(value)
+}
+
 // --- Pure helpers (unit tested) ---
 
 export function computeTotals(transactions: TransactionForSummary[]): MonthTotals {
@@ -111,7 +117,7 @@ export async function getDashboardSummary(
 
   const transactions = (txData ?? []).map(t => ({
     amount_crc: t.amount_crc,
-    category_type: ((t.category as { type: CategoryType } | null)?.type) ?? 'variable_expense' as CategoryType,
+    category_type: (() => { const rawType = (t.category as { type: string } | null)?.type; return isValidCategoryType(rawType) ? rawType : 'variable_expense' })(),
   }))
 
   const totals = computeTotals(transactions)
@@ -126,12 +132,17 @@ export async function getDashboardSummary(
     }
   }
 
-  const usdToCRC = rateData?.usd_to_crc ?? 1
+  const hasUsdBudgets = (catData ?? []).some(cat => cat.monthly_budget_currency === 'USD')
+  if (hasUsdBudgets && rateData === null) {
+    throw new Error('Exchange rate required for USD budget categories but none found')
+  }
+  const usdToCRC = rateData?.usd_to_crc ?? 1  // safe: either no USD budgets, or rate is present
 
   const budgetProgress: BudgetProgressItem[] = (catData ?? [])
     .map(cat => {
       const spentCRC = spentByCategory.get(cat.id) ?? 0
       const multiplier = cat.monthly_budget_currency === 'USD' ? usdToCRC : 1
+      // monthly_budget_amount is non-null because the query filters .not('monthly_budget_amount', 'is', null)
       const { budgetCRC, usedPercent } = computeBudgetProgress(
         spentCRC,
         cat.monthly_budget_amount!,
