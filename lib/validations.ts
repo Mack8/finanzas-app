@@ -90,8 +90,37 @@ export const debtSchema = z.object({
   notes: z.string().trim().max(500, 'Las notas no pueden exceder 500 caracteres').optional().or(z.literal('')),
 })
 
+export const savingsFundSchema = z.object({
+  name: z.string()
+    .trim()
+    .min(2, 'El nombre debe tener al menos 2 caracteres')
+    .max(80, 'El nombre no puede exceder 80 caracteres'),
+  goalAmount: z.coerce.number()
+    .finite('El monto debe ser válido')
+    .positive('La meta debe ser mayor a 0'),
+  goalCurrency: z.enum(['CRC', 'USD'], { error: 'Moneda inválida' }),
+  targetDate: z.string().min(1, 'La fecha meta es obligatoria'),
+  color: z.string()
+    .regex(/^#[0-9a-fA-F]{6}$/, 'Seleccioná un color válido')
+    .optional()
+    .or(z.literal('')),
+  monthlyContributionAmount: optionalPositiveAmount,
+  monthlyContributionCurrency: z.enum(['CRC', 'USD'], { error: 'Moneda inválida' }).optional(),
+})
+
+export const contributionSchema = z.object({
+  date: z.string().min(1, 'La fecha es obligatoria'),
+  amount: z.coerce.number()
+    .finite('El monto debe ser válido')
+    .positive('El monto debe ser mayor a 0'),
+  currency: z.enum(['CRC', 'USD'], { error: 'Moneda inválida' }),
+  notes: z.string().trim().max(500, 'Las notas no pueden exceder 500 caracteres').optional().or(z.literal('')),
+})
+
 export type LoginFormValues = z.infer<typeof loginSchema>
 export type RegisterFormValues = z.infer<typeof registerSchema>
 export type TransactionFormValues = z.infer<typeof transactionSchema>
 export type CategoryFormValues = z.infer<typeof categorySchema>
 export type DebtFormValues = z.infer<typeof debtSchema>
+export type SavingsFundFormValues = z.infer<typeof savingsFundSchema>
+export type ContributionFormValues = z.infer<typeof contributionSchema>

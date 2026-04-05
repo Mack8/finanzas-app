@@ -103,25 +103,31 @@ export async function markInstallmentPaidAction(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { status: 'error', message: 'Tu sesión ya no es válida.' }
 
-  const { data: debt } = await supabase
+  const { data: debtRow } = await supabase
     .from('debts')
     .select('paid_installments, total_installments')
     .eq('id', id)
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (!debt) return { status: 'error', message: 'Deuda no encontrada.' }
+  if (!debtRow) return { status: 'error', message: 'Deuda no encontrada.' }
+  if (debtRow.paid_installments >= debtRow.total_installments) {
+    return { status: 'error', message: 'Esta deuda ya está completamente pagada.' }
+  }
 
-  const newPaid = debt.paid_installments + 1
-  const isNowComplete = newPaid >= debt.total_installments
+  const newPaid = debtRow.paid_installments + 1
+  const isNowComplete = newPaid >= debtRow.total_installments
 
-  const { error } = await supabase
+  // Guard in WHERE clause: only update if still unpaid — prevents double-increment on rapid clicks
+  const { data: updatedRows, error } = await supabase
     .from('debts')
     .update({ paid_installments: newPaid, is_active: !isNowComplete })
     .eq('id', id)
     .eq('user_id', user.id)
+    .lt('paid_installments', debtRow.total_installments)
+    .select('id')
 
-  if (error) return { status: 'error', message: 'No se pudo registrar el pago.' }
+  if (error || !updatedRows?.length) return { status: 'error', message: 'No se pudo registrar el pago. Intentá de nuevo.' }
 
   revalidatePath('/debts')
   return {
