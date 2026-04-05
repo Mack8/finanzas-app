@@ -127,3 +127,108 @@ export async function toggleCategoryStatusAction(formData: FormData) {
 
   revalidateCategorySurfaces()
 }
+
+export type UpdateCategoryState = {
+  status: 'idle' | 'error' | 'success'
+  message?: string
+  fieldErrors?: CategoryFieldErrors
+}
+
+export type DeleteCategoryState = {
+  status: 'idle' | 'error' | 'success'
+  message?: string
+}
+
+export async function updateCategoryAction(
+  id: string,
+  _prevState: UpdateCategoryState,
+  formData: FormData
+): Promise<UpdateCategoryState> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { status: 'error', message: 'Tu sesión ya no es válida. Volvé a iniciar sesión.' }
+
+  const parsed = categorySchema.safeParse({
+    name: formData.get('name'),
+    type: formData.get('type'),
+    color: formData.get('color'),
+    monthlyBudgetAmount: formData.get('monthlyBudgetAmount'),
+    monthlyBudgetCurrency: formData.get('monthlyBudgetCurrency') || undefined,
+  })
+  if (!parsed.success) {
+    return {
+      status: 'error',
+      message: 'Revisá los datos de la categoría.',
+      fieldErrors: parsed.error.flatten().fieldErrors as CategoryFieldErrors,
+    }
+  }
+
+  const values = parsed.data
+  const originalType = String(formData.get('originalType') ?? '')
+
+  // If type is changing, block if category has associated transactions
+  if (values.type !== originalType) {
+    const { count } = await supabase
+      .from('transactions')
+      .select('id', { count: 'exact', head: true })
+      .eq('category_id', id)
+      .eq('user_id', user.id)
+    if ((count ?? 0) > 0) {
+      return {
+        status: 'error',
+        message: 'No se puede cambiar el tipo porque tiene transacciones asociadas.',
+      }
+    }
+  }
+
+  const { data: updatedRows, error: updateError } = await supabase
+    .from('categories')
+    .update({
+      name: values.name,
+      type: values.type,
+      color: values.color,
+      monthly_budget_amount: values.monthlyBudgetAmount ?? null,
+      monthly_budget_currency: values.monthlyBudgetCurrency ?? 'CRC',
+    })
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .select('id')
+
+  if (updateError || !updatedRows?.length) {
+    return { status: 'error', message: 'No se pudo actualizar la categoría.' }
+  }
+
+  revalidateCategorySurfaces()
+  return { status: 'success', message: 'Categoría actualizada correctamente.' }
+}
+
+export async function deleteCategoryAction(
+  id: string,
+  _prevState: DeleteCategoryState,
+  _formData: FormData
+): Promise<DeleteCategoryState> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { status: 'error', message: 'Tu sesión ya no es válida.' }
+
+  // Safety check: block delete if category has transactions
+  const { count } = await supabase
+    .from('transactions')
+    .select('id', { count: 'exact', head: true })
+    .eq('category_id', id)
+    .eq('user_id', user.id)
+  if ((count ?? 0) > 0) {
+    return { status: 'error', message: 'No se puede eliminar porque tiene transacciones asociadas.' }
+  }
+
+  const { error } = await supabase
+    .from('categories')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error) return { status: 'error', message: 'No se pudo eliminar la categoría.' }
+
+  revalidateCategorySurfaces()
+  return { status: 'success' }
+}

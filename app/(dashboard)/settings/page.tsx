@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation'
 import { CreateCategoryForm } from '@/components/settings/CreateCategoryForm'
+import { DeleteCategoryButton } from '@/components/settings/DeleteCategoryButton'
+import { EditCategoryDialog } from '@/components/settings/EditCategoryDialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { categoryTypeLabels } from '@/lib/categories'
@@ -28,22 +30,33 @@ export default async function SettingsPage() {
     redirect('/login')
   }
 
-  const { data: categoriesData } = await supabase
-    .from('categories')
-    .select(`
-      id,
-      name,
-      type,
-      color,
-      monthly_budget_amount,
-      monthly_budget_currency,
-      is_active,
-      sort_order
-    `)
-    .order('type', { ascending: true })
-    .order('sort_order', { ascending: true })
+  const [{ data: categoriesData }, { data: txCounts }] = await Promise.all([
+    supabase
+      .from('categories')
+      .select(`
+        id,
+        name,
+        type,
+        color,
+        monthly_budget_amount,
+        monthly_budget_currency,
+        is_active,
+        sort_order
+      `)
+      .order('type', { ascending: true })
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('transactions')
+      .select('category_id')
+      .eq('user_id', user.id),
+  ])
 
   const categories = (categoriesData ?? []) as CategorySummary[]
+
+  const txCountByCategory = (txCounts ?? []).reduce<Record<string, number>>((acc, tx) => {
+    if (tx.category_id) acc[tx.category_id] = (acc[tx.category_id] ?? 0) + 1
+    return acc
+  }, {})
 
   const groupedCategories = Object.entries(
     categories.reduce<Record<string, CategorySummary[]>>((accumulator, category) => {
@@ -167,17 +180,25 @@ export default async function SettingsPage() {
                           </div>
                         </div>
 
-                        <form action={toggleCategoryStatusAction}>
-                          <input type="hidden" name="categoryId" value={category.id} />
-                          <input
-                            type="hidden"
-                            name="nextActiveState"
-                            value={String(!category.is_active)}
+                        <div className="flex flex-wrap gap-2">
+                          <EditCategoryDialog category={category} />
+                          <DeleteCategoryButton
+                            categoryId={category.id}
+                            categoryName={category.name}
+                            transactionCount={txCountByCategory[category.id] ?? 0}
                           />
-                          <Button type="submit" variant="outline" size="sm">
-                            {category.is_active ? 'Desactivar' : 'Activar'}
-                          </Button>
-                        </form>
+                          <form action={toggleCategoryStatusAction}>
+                            <input type="hidden" name="categoryId" value={category.id} />
+                            <input
+                              type="hidden"
+                              name="nextActiveState"
+                              value={String(!category.is_active)}
+                            />
+                            <Button type="submit" variant="outline" size="sm">
+                              {category.is_active ? 'Desactivar' : 'Activar'}
+                            </Button>
+                          </form>
+                        </div>
                       </div>
                     ))}
                   </div>
