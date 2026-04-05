@@ -19,7 +19,8 @@ export default async function DashboardPage() {
   const monthLabel = new Intl.DateTimeFormat('es-CR', {
     month: 'long',
     year: 'numeric',
-  }).format(new Date(year, month - 1, 1))
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(year, month - 1, 1)))
 
   return (
     <div className="space-y-6">
@@ -118,14 +119,26 @@ export default async function DashboardPage() {
                       <span className="text-muted-foreground">
                         {formatMoney(item.spentCRC, 'CRC')}
                         {' / '}
-                        {formatMoney(item.budgetAmount, item.budgetCurrency)}
+                        {formatMoney(item.budgetCRC, 'CRC')}
+                        {item.budgetCurrency !== 'CRC' && (
+                          <span className="text-xs opacity-70">
+                            {' '}(presupuesto: {formatMoney(item.budgetAmount, item.budgetCurrency)})
+                          </span>
+                        )}
                         {' '}
                         <span className={item.usedPercent >= 100 ? 'text-danger font-semibold' : ''}>
                           ({item.usedPercent.toFixed(0)}%)
                         </span>
                       </span>
                     </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      role="progressbar"
+                      aria-valuenow={Math.min(Math.round(item.usedPercent), 100)}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`Presupuesto ${item.categoryName}`}
+                      className="h-2 rounded-full bg-muted overflow-hidden"
+                    >
                       <div
                         className={`h-2 rounded-full transition-all ${barColor}`}
                         style={{ width: barWidth }}
