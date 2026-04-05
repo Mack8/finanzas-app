@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { CreateTransactionForm } from '@/components/transactions/CreateTransactionForm'
 import { RefreshExchangeRateButton } from '@/components/transactions/RefreshExchangeRateButton'
@@ -176,7 +177,9 @@ export default async function TransactionsPage({
         </Card>
       </div>
 
-      <TransactionFilters categories={categories} defaultMonth={monthStr} />
+      <Suspense fallback={<div className="h-8" />}>
+        <TransactionFilters categories={categories} defaultMonth={monthStr} />
+      </Suspense>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,440px)_1fr]">
         <CreateTransactionForm

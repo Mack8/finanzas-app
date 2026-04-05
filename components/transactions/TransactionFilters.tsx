@@ -29,7 +29,7 @@ export function TransactionFilters({ categories, defaultMonth }: Props) {
   const searchParams = useSearchParams()
 
   function updateParam(key: string, value: string) {
-    const params = new URLSearchParams(searchParams?.toString() ?? '')
+    const params = new URLSearchParams(searchParams.toString())
     if (value) {
       params.set(key, value)
     } else {
@@ -38,10 +38,10 @@ export function TransactionFilters({ categories, defaultMonth }: Props) {
     router.replace(`${pathname}?${params.toString()}`)
   }
 
-  const currentMonth = searchParams?.get('month') ?? defaultMonth
-  const currentCategoryId = searchParams?.get('categoryId') ?? ''
-  const currentType = searchParams?.get('type') ?? ''
-  const currentCurrency = searchParams?.get('currency') ?? ''
+  const currentMonth = searchParams.get('month') ?? defaultMonth
+  const currentCategoryId = searchParams.get('categoryId') ?? ''
+  const currentType = searchParams.get('type') ?? ''
+  const currentCurrency = searchParams.get('currency') ?? ''
 
   return (
     <div className="flex flex-wrap gap-3">

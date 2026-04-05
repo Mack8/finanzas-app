@@ -53,6 +53,7 @@ export function buildTransactionFilters(
   const month = typeof params.month === 'string' ? params.month : undefined
   if (month && MONTH_REGEX.test(month)) {
     const [year, m] = month.split('-').map(Number)
+    // Day 0 of month m is the last day of month m-1 (our target month since m is 1-indexed)
     const lastDay = new Date(year, m, 0).getDate()
     filters.dateFrom = `${month}-01`
     filters.dateTo = `${month}-${String(lastDay).padStart(2, '0')}`
