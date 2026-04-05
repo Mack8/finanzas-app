@@ -188,7 +188,7 @@ export async function updateTransactionAction(
     }
   }
 
-  const { error: updateError } = await supabase
+  const { data: updatedRows, error: updateError } = await supabase
     .from('transactions')
     .update({
       date: values.date,
@@ -203,8 +203,11 @@ export async function updateTransactionAction(
     })
     .eq('id', id)
     .eq('user_id', user.id)
+    .select('id')
 
-  if (updateError) return { status: 'error', message: 'No se pudo actualizar la transacción. Intentá de nuevo.' }
+  if (updateError || !updatedRows?.length) {
+    return { status: 'error', message: 'No se pudo actualizar la transacción. Intentá de nuevo.' }
+  }
 
   revalidatePath('/transactions')
   return { status: 'success', message: 'Transacción actualizada correctamente.' }

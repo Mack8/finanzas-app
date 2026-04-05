@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -60,7 +60,11 @@ const initialState: TransactionActionState = { status: 'idle' }
 
 export function EditTransactionDialog({ transaction, categories, latestExchangeRate }: Props) {
   const [open, setOpen] = useState(false)
-  const boundAction = updateTransactionAction.bind(null, transaction.id)
+  const [formKey, setFormKey] = useState(0)
+  const boundAction = useMemo(
+    () => updateTransactionAction.bind(null, transaction.id),
+    [transaction.id]
+  )
   const [state, formAction, pending] = useActionState(boundAction, initialState)
 
   useEffect(() => {
@@ -69,8 +73,13 @@ export function EditTransactionDialog({ transaction, categories, latestExchangeR
     }
   }, [state.status])
 
+  function handleOpenChange(next: boolean) {
+    if (!next) setFormKey(k => k + 1)
+    setOpen(next)
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger render={<Button variant="outline" size="sm" />}>
         Editar
       </DialogTrigger>
@@ -78,7 +87,7 @@ export function EditTransactionDialog({ transaction, categories, latestExchangeR
         <DialogHeader>
           <DialogTitle>Editar transacción</DialogTitle>
         </DialogHeader>
-        <form action={formAction} className="space-y-4">
+        <form key={formKey} action={formAction} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor={`date-${transaction.id}`}>Fecha</Label>

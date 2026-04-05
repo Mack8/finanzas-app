@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -25,7 +25,11 @@ const initialState: DeleteTransactionState = { status: 'idle' }
 
 export function DeleteTransactionDialog({ transactionId, description }: Props) {
   const [open, setOpen] = useState(false)
-  const boundAction = deleteTransactionAction.bind(null, transactionId)
+  const [formKey, setFormKey] = useState(0)
+  const boundAction = useMemo(
+    () => deleteTransactionAction.bind(null, transactionId),
+    [transactionId]
+  )
   const [state, formAction, pending] = useActionState(boundAction, initialState)
 
   useEffect(() => {
@@ -34,8 +38,13 @@ export function DeleteTransactionDialog({ transactionId, description }: Props) {
     }
   }, [state.status])
 
+  function handleOpenChange(next: boolean) {
+    if (!next) setFormKey(k => k + 1)
+    setOpen(next)
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger render={<Button variant="outline" size="sm" />}>
         Eliminar
       </DialogTrigger>
@@ -46,7 +55,7 @@ export function DeleteTransactionDialog({ transactionId, description }: Props) {
             Vas a eliminar &ldquo;{description}&rdquo;. Esta acción no se puede deshacer.
           </DialogDescription>
         </DialogHeader>
-        <form action={formAction}>
+        <form key={formKey} action={formAction}>
           {state.message && (
             <p className="mb-3 text-sm text-danger">{state.message}</p>
           )}
