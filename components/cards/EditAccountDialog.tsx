@@ -84,7 +84,7 @@ export function EditAccountDialog({ account }: Props) {
           </div>
 
           {state.message && (
-            <p aria-live="polite" className="text-sm text-danger">{state.message}</p>
+            <p aria-live="polite" className={state.status === 'success' ? 'text-sm text-success' : 'text-sm text-danger'}>{state.message}</p>
           )}
 
           <DialogFooter showCloseButton>
