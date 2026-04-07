@@ -66,3 +66,23 @@ describe('getCurrentMonthCR', () => {
     expect(month).toBeLessThanOrEqual(12)
   })
 })
+
+import { computeAvailableBalance } from './dashboard'
+
+describe('computeAvailableBalance', () => {
+  it('subtracts expenses, savings contributions, and active debts from income', () => {
+    expect(computeAvailableBalance(825548, 200000, 50000, 150000)).toBe(425548)
+  })
+
+  it('can be negative when spending exceeds income', () => {
+    expect(computeAvailableBalance(500000, 400000, 100000, 200000)).toBe(-200000)
+  })
+
+  it('returns income when no expenses, contributions, or debts', () => {
+    expect(computeAvailableBalance(500000, 0, 0, 0)).toBe(500000)
+  })
+
+  it('returns 0 when everything is zero', () => {
+    expect(computeAvailableBalance(0, 0, 0, 0)).toBe(0)
+  })
+})

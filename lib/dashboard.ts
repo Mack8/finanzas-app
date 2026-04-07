@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CategoryType, CurrencyCode } from '@/types/database'
 import type { Database } from '@/types/database'
 import { roundMoney } from '@/lib/transactions'
+import { computeMonthlyIncomeCRC } from '@/lib/income'
 
 export type TransactionForSummary = {
   amount_crc: number
@@ -162,4 +163,77 @@ export async function getDashboardSummary(
     .sort((a, b) => b.usedPercent - a.usedPercent)
 
   return { totals, budgetProgress }
+}
+
+export function computeAvailableBalance(
+  monthlyIncomeCRC: number,
+  expensesCRC: number,
+  savingsContribsCRC: number,
+  activeDebtsCRC: number
+): number {
+  return roundMoney(monthlyIncomeCRC - expensesCRC - savingsContribsCRC - activeDebtsCRC)
+}
+
+export async function getAvailableBalance(
+  supabase: SupabaseClient<Database>,
+  year: number,
+  month: number
+): Promise<number | null> {
+  const monthStr = String(month).padStart(2, '0')
+  const lastDay = new Date(year, month, 0).getDate()
+  const dateFrom = `${year}-${monthStr}-01`
+  const dateTo = `${year}-${monthStr}-${String(lastDay).padStart(2, '0')}`
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(new Date())
+
+  const [
+    { data: incomeRows },
+    { data: expenseTxs },
+    { data: contributions },
+    { data: debts },
+    { data: rateData },
+  ] = await Promise.all([
+    supabase
+      .from('income_config')
+      .select('first_payment_amount, second_payment_amount, currency')
+      .lte('effective_from', todayStr)
+      .order('effective_from', { ascending: false })
+      .limit(1),
+    supabase
+      .from('transactions')
+      .select('amount_crc, category:categories(type)')
+      .gte('date', dateFrom)
+      .lte('date', dateTo),
+    supabase
+      .from('savings_contributions')
+      .select('amount_crc')
+      .gte('date', dateFrom)
+      .lte('date', dateTo),
+    supabase
+      .from('debts')
+      .select('monthly_amount_crc')
+      .eq('is_active', true),
+    supabase
+      .from('exchange_rates')
+      .select('usd_to_crc')
+      .order('date', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ])
+
+  const incomeConfig = incomeRows?.[0] ?? null
+  if (!incomeConfig) return null
+
+  const usdToCRC = rateData?.usd_to_crc
+  const monthlyIncomeCRC = computeMonthlyIncomeCRC(incomeConfig, usdToCRC)
+
+  const expensesCRC = (expenseTxs ?? []).reduce((sum, t) => {
+    const type = (t.category as { type: string } | null)?.type
+    if (type === 'fixed_expense' || type === 'variable_expense') return sum + t.amount_crc
+    return sum
+  }, 0)
+
+  const savingsContribsCRC = (contributions ?? []).reduce((sum, c) => sum + c.amount_crc, 0)
+  const activeDebtsCRC = (debts ?? []).reduce((sum, d) => sum + d.monthly_amount_crc, 0)
+
+  return computeAvailableBalance(monthlyIncomeCRC, expensesCRC, savingsContribsCRC, activeDebtsCRC)
 }

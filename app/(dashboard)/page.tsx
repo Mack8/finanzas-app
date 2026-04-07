@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { getCurrentMonthCR, getDashboardSummary } from '@/lib/dashboard'
+import { getCurrentMonthCR, getDashboardSummary, getAvailableBalance } from '@/lib/dashboard'
 import { formatMoney } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
 
@@ -13,7 +13,10 @@ export default async function DashboardPage() {
   }
 
   const { year, month } = getCurrentMonthCR()
-  const summary = await getDashboardSummary(supabase, year, month)
+  const [summary, availableBalance] = await Promise.all([
+    getDashboardSummary(supabase, year, month),
+    getAvailableBalance(supabase, year, month),
+  ])
   const { totals, budgetProgress } = summary
 
   const monthLabel = new Intl.DateTimeFormat('es-CR', {
@@ -31,8 +34,8 @@ export default async function DashboardPage() {
         <p className="text-muted-foreground">Resumen financiero del mes actual.</p>
       </div>
 
-      {/* 4 stat cards */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {/* stat cards */}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5">
         <Card size="sm">
           <CardHeader>
             <CardTitle>Ingresos</CardTitle>
@@ -78,6 +81,24 @@ export default async function DashboardPage() {
             <p className={`text-2xl font-semibold ${totals.balance >= 0 ? 'text-success' : 'text-danger'}`}>
               {formatMoney(totals.balance, 'CRC')}
             </p>
+          </CardContent>
+        </Card>
+
+        <Card size="sm">
+          <CardHeader>
+            <CardTitle>Saldo disponible</CardTitle>
+            <CardDescription>Ingreso − gastos − aportes − deudas</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {availableBalance === null ? (
+              <p className="text-sm text-muted-foreground">
+                Configurá tu ingreso en Ajustes para ver esta métrica.
+              </p>
+            ) : (
+              <p className={`text-2xl font-semibold ${availableBalance >= 0 ? 'text-success' : 'text-danger'}`}>
+                {formatMoney(availableBalance, 'CRC')}
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
