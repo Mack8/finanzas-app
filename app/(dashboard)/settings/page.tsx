@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { CreateCategoryForm } from '@/components/settings/CreateCategoryForm'
+import { IncomeConfigForm } from '@/components/settings/IncomeConfigForm'
 import { DeleteCategoryButton } from '@/components/settings/DeleteCategoryButton'
 import { EditCategoryDialog } from '@/components/settings/EditCategoryDialog'
 import { Button } from '@/components/ui/button'
@@ -30,19 +31,10 @@ export default async function SettingsPage() {
     redirect('/login')
   }
 
-  const [{ data: categoriesData }, { data: txCounts }] = await Promise.all([
+  const [{ data: categoriesData }, { data: txCounts }, { data: incomeConfigRows }] = await Promise.all([
     supabase
       .from('categories')
-      .select(`
-        id,
-        name,
-        type,
-        color,
-        monthly_budget_amount,
-        monthly_budget_currency,
-        is_active,
-        sort_order
-      `)
+      .select(`id, name, type, color, monthly_budget_amount, monthly_budget_currency, is_active, sort_order`)
       .eq('user_id', user.id)
       .order('type', { ascending: true })
       .order('sort_order', { ascending: true }),
@@ -50,6 +42,13 @@ export default async function SettingsPage() {
       .from('transactions')
       .select('category_id')
       .eq('user_id', user.id),
+    supabase
+      .from('income_config')
+      .select('id, user_id, first_payment_amount, first_payment_day, second_payment_amount, second_payment_day, currency, effective_from, created_at')
+      .eq('user_id', user.id)
+      .lte('effective_from', new Date().toISOString().slice(0, 10))
+      .order('effective_from', { ascending: false })
+      .limit(1),
   ])
 
   const categories = (categoriesData ?? []) as CategorySummary[]
@@ -58,6 +57,8 @@ export default async function SettingsPage() {
     if (tx.category_id) acc[tx.category_id] = (acc[tx.category_id] ?? 0) + 1
     return acc
   }, {})
+
+  const currentIncomeConfig = (incomeConfigRows?.[0] ?? null) as import('@/types/domain').IncomeConfig | null
 
   const groupedCategories = Object.entries(
     categories.reduce<Record<string, CategorySummary[]>>((accumulator, category) => {
@@ -208,6 +209,14 @@ export default async function SettingsPage() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold">Ingresos</h3>
+          <p className="text-sm text-muted-foreground">Configurá tu salario para calcular el saldo disponible mensual.</p>
+        </div>
+        <IncomeConfigForm currentConfig={currentIncomeConfig} />
       </div>
     </div>
   )

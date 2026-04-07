@@ -143,6 +143,28 @@ export const paymentAccountSchema = z.object({
 
 export type PaymentAccountFormValues = z.infer<typeof paymentAccountSchema>
 
+export const incomeConfigSchema = z.object({
+  firstPaymentAmount: z.coerce.number()
+    .finite('El monto debe ser válido')
+    .positive('El monto debe ser mayor a 0'),
+  firstPaymentDay: z.coerce.number()
+    .int('Debe ser entero')
+    .min(1, 'Mínimo día 1')
+    .max(31, 'Máximo día 31'),
+  secondPaymentAmount: optionalPositiveAmount,
+  secondPaymentDay: optionalDay,
+  currency: z.enum(['CRC', 'USD'], { error: 'Moneda inválida' }),
+  effectiveFrom: z.string().min(1, 'La fecha de vigencia es obligatoria'),
+}).refine(data => {
+  if (data.secondPaymentAmount !== undefined && !data.secondPaymentDay) return false
+  return true
+}, {
+  path: ['secondPaymentDay'],
+  message: 'Ingresá el día del segundo pago.',
+})
+
+export type IncomeConfigFormValues = z.infer<typeof incomeConfigSchema>
+
 export type LoginFormValues = z.infer<typeof loginSchema>
 export type RegisterFormValues = z.infer<typeof registerSchema>
 export type TransactionFormValues = z.infer<typeof transactionSchema>

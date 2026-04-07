@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { getNextCategorySortOrder } from '@/lib/categories'
 import { createClient } from '@/lib/supabase/server'
-import { categorySchema } from '@/lib/validations'
+import { categorySchema, incomeConfigSchema } from '@/lib/validations'
 import type { CategoryType } from '@/types/database'
 
 type CategoryFieldErrors = Partial<Record<
@@ -234,4 +234,58 @@ export async function deleteCategoryAction(
 
   revalidateCategorySurfaces()
   return { status: 'success' }
+}
+
+type IncomeConfigFieldErrors = Partial<Record<
+  'firstPaymentAmount' | 'firstPaymentDay' | 'secondPaymentAmount' | 'secondPaymentDay' | 'currency' | 'effectiveFrom',
+  string[]
+>>
+
+export type IncomeConfigState = {
+  status: 'idle' | 'error' | 'success'
+  message?: string
+  fieldErrors?: IncomeConfigFieldErrors
+}
+
+export async function saveIncomeConfigAction(
+  _prevState: IncomeConfigState,
+  formData: FormData
+): Promise<IncomeConfigState> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { status: 'error', message: 'Tu sesión ya no es válida.' }
+
+  const parsed = incomeConfigSchema.safeParse({
+    firstPaymentAmount: formData.get('firstPaymentAmount'),
+    firstPaymentDay: formData.get('firstPaymentDay'),
+    secondPaymentAmount: formData.get('secondPaymentAmount'),
+    secondPaymentDay: formData.get('secondPaymentDay') || undefined,
+    currency: formData.get('currency'),
+    effectiveFrom: formData.get('effectiveFrom'),
+  })
+  if (!parsed.success) {
+    return {
+      status: 'error',
+      message: 'Revisá los datos del ingreso.',
+      fieldErrors: parsed.error.flatten().fieldErrors as IncomeConfigFieldErrors,
+    }
+  }
+
+  const values = parsed.data
+
+  const { error } = await supabase.from('income_config').insert({
+    user_id: user.id,
+    first_payment_amount: values.firstPaymentAmount,
+    first_payment_day: values.firstPaymentDay,
+    second_payment_amount: values.secondPaymentAmount ?? null,
+    second_payment_day: values.secondPaymentDay ?? null,
+    currency: values.currency,
+    effective_from: values.effectiveFrom,
+  })
+
+  if (error) return { status: 'error', message: 'No se pudo guardar la configuración de ingresos.' }
+
+  revalidatePath('/settings')
+  revalidatePath('/')
+  return { status: 'success', message: 'Configuración de ingresos guardada.' }
 }
