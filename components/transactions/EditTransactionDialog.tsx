@@ -24,6 +24,13 @@ type CategoryOption = {
   color: string
 }
 
+type AccountOption = {
+  id: string
+  name: string
+  type: 'credit_card' | 'bank_account'
+  last_four: string | null
+}
+
 type TransactionData = {
   id: string
   date: string
@@ -32,6 +39,7 @@ type TransactionData = {
   currency: 'CRC' | 'USD'
   transaction_type: 'personal' | 'household' | 'reimbursement'
   notes: string | null
+  payment_account_id: string | null
   category: CategoryOption | null
 }
 
@@ -44,6 +52,7 @@ type Props = {
   transaction: TransactionData
   categories: CategoryOption[]
   latestExchangeRate: ExchangeRateInfo
+  accounts: AccountOption[]
 }
 
 const selectClassName =
@@ -58,7 +67,7 @@ const categoryTypeLabels: Record<CategoryOption['type'], string> = {
 
 const initialState: TransactionActionState = { status: 'idle' }
 
-export function EditTransactionDialog({ transaction, categories, latestExchangeRate }: Props) {
+export function EditTransactionDialog({ transaction, categories, latestExchangeRate, accounts }: Props) {
   const [open, setOpen] = useState(false)
   const [formKey, setFormKey] = useState(0)
   const boundAction = useMemo(
@@ -210,6 +219,25 @@ export function EditTransactionDialog({ transaction, categories, latestExchangeR
               <p className="text-sm text-danger">{state.fieldErrors.notes[0]}</p>
             )}
           </div>
+
+          {accounts.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor={`paymentAccountId-${transaction.id}`}>Cuenta (opcional)</Label>
+              <select
+                id={`paymentAccountId-${transaction.id}`}
+                name="paymentAccountId"
+                className={selectClassName}
+                defaultValue={transaction.payment_account_id ?? ''}
+              >
+                <option value="">Sin cuenta</option>
+                {accounts.map(acc => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name}{acc.last_four ? ` ····${acc.last_four}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {state.message && (
             <p

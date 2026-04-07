@@ -46,6 +46,7 @@ export const transactionSchema = z.object({
     .max(500, 'Las notas no pueden exceder 500 caracteres')
     .optional()
     .or(z.literal('')),
+  paymentAccountId: z.string().uuid('Cuenta inválida').optional().or(z.literal('')),
 })
 
 export const categorySchema = z.object({

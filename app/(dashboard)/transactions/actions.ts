@@ -39,6 +39,7 @@ export async function createTransactionAction(
     categoryId: formData.get('categoryId'),
     transactionType: formData.get('transactionType'),
     notes: formData.get('notes'),
+    paymentAccountId: formData.get('paymentAccountId') || undefined,
   })
 
   if (!parsed.success) {
@@ -103,7 +104,7 @@ export async function createTransactionAction(
     amount_crc: amountCRC,
     exchange_rate_id: exchangeRateId,
     category_id: values.categoryId,
-    payment_account_id: null,
+    payment_account_id: values.paymentAccountId || null,
     transaction_type: values.transactionType,
     tags: [],
     notes: values.notes || null,
@@ -146,6 +147,7 @@ export async function updateTransactionAction(
     categoryId: formData.get('categoryId'),
     transactionType: formData.get('transactionType'),
     notes: formData.get('notes'),
+    paymentAccountId: formData.get('paymentAccountId') || undefined,
   })
   if (!parsed.success) {
     return {
@@ -198,6 +200,7 @@ export async function updateTransactionAction(
       amount_crc: amountCRC,
       exchange_rate_id: exchangeRateId,
       category_id: values.categoryId,
+      payment_account_id: values.paymentAccountId || null,
       transaction_type: values.transactionType,
       notes: values.notes || null,
     })

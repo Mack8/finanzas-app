@@ -14,6 +14,13 @@ type CategoryOption = {
   color: string
 }
 
+type AccountOption = {
+  id: string
+  name: string
+  type: 'credit_card' | 'bank_account'
+  last_four: string | null
+}
+
 type ExchangeRateInfo = {
   date: string
   usd_to_crc: number
@@ -22,6 +29,7 @@ type ExchangeRateInfo = {
 type CreateTransactionFormProps = {
   categories: CategoryOption[]
   latestExchangeRate: ExchangeRateInfo
+  accounts: AccountOption[]
 }
 
 const initialState: TransactionActionState = {
@@ -41,6 +49,7 @@ const categoryTypeLabels: Record<CategoryOption['type'], string> = {
 export function CreateTransactionForm({
   categories,
   latestExchangeRate,
+  accounts,
 }: CreateTransactionFormProps) {
   const [state, formAction, pending] = useActionState(createTransactionAction, initialState)
   const formRef = useRef<HTMLFormElement>(null)
@@ -183,6 +192,25 @@ export function CreateTransactionForm({
               <p className="text-sm text-danger">{state.fieldErrors.notes[0]}</p>
             )}
           </div>
+
+          {accounts.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="paymentAccountId">Cuenta (opcional)</Label>
+              <select
+                id="paymentAccountId"
+                name="paymentAccountId"
+                className={selectClassName}
+                defaultValue=""
+              >
+                <option value="">Sin cuenta</option>
+                {accounts.map(acc => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name}{acc.last_four ? ` ····${acc.last_four}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {latestExchangeRate ? (
             <p className="text-sm text-muted-foreground">

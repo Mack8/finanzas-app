@@ -25,8 +25,16 @@ type RecentTransaction = Pick<
   | 'amount_crc'
   | 'transaction_type'
   | 'notes'
+  | 'payment_account_id'
 > & {
   category: CategoryOption | null
+}
+
+type AccountOption = {
+  id: string
+  name: string
+  type: 'credit_card' | 'bank_account'
+  last_four: string | null
 }
 
 type ExchangeRateInfo = Pick<ExchangeRate, 'id' | 'date' | 'usd_to_crc'>
@@ -65,7 +73,7 @@ export default async function TransactionsPage({
   let txQuery = supabase
     .from('transactions')
     .select(`
-      id, date, description, amount, currency, amount_crc, transaction_type, notes,
+      id, date, description, amount, currency, amount_crc, transaction_type, notes, payment_account_id,
       category:categories ( id, name, type, color )
     `)
     .order('date', { ascending: false })
@@ -78,17 +86,24 @@ export default async function TransactionsPage({
   if (filters.transactionType) txQuery = txQuery.eq('transaction_type', filters.transactionType)
   if (filters.currency) txQuery = txQuery.eq('currency', filters.currency)
 
-  const [{ data: categoriesData }, { data: transactionsData }] = await Promise.all([
+  const [{ data: categoriesData }, { data: transactionsData }, { data: accountsData }] = await Promise.all([
     supabase
       .from('categories')
       .select('id, name, type, color, sort_order')
       .eq('is_active', true)
       .order('sort_order', { ascending: true }),
     txQuery,
+    supabase
+      .from('payment_accounts')
+      .select('id, name, type, last_four')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .order('name'),
   ])
 
   const categories = (categoriesData ?? []) as CategoryOption[]
   const transactions = (transactionsData ?? []) as unknown as RecentTransaction[]
+  const accounts = (accountsData ?? []) as AccountOption[]
   let latestExchangeRate: ExchangeRateInfo | null = null
 
   try {
@@ -187,6 +202,7 @@ export default async function TransactionsPage({
         <CreateTransactionForm
           categories={categories}
           latestExchangeRate={latestExchangeRate}
+          accounts={accounts}
         />
 
         <Card>
@@ -240,6 +256,7 @@ export default async function TransactionsPage({
                         transaction={transaction}
                         categories={categories}
                         latestExchangeRate={latestExchangeRate}
+                        accounts={accounts}
                       />
                       <DeleteTransactionDialog
                         transactionId={transaction.id}
