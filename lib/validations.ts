@@ -117,6 +117,32 @@ export const contributionSchema = z.object({
   notes: z.string().trim().max(500, 'Las notas no pueden exceder 500 caracteres').optional().or(z.literal('')),
 })
 
+const optionalDay = z.preprocess(
+  v => (v === '' || v === null || v === undefined ? undefined : v),
+  z.coerce.number().int('Debe ser entero').min(1, 'Mínimo día 1').max(31, 'Máximo día 31').optional()
+)
+
+export const paymentAccountSchema = z.object({
+  name: z.string()
+    .trim()
+    .min(2, 'El nombre debe tener al menos 2 caracteres')
+    .max(60, 'El nombre no puede exceder 60 caracteres'),
+  type: z.enum(['credit_card', 'bank_account'], { error: 'Tipo inválido' }),
+  lastFour: z.string()
+    .regex(/^\d{4}$/, 'Deben ser exactamente 4 dígitos')
+    .optional()
+    .or(z.literal('')),
+  bankName: z.string()
+    .trim()
+    .max(60, 'El nombre del banco no puede exceder 60 caracteres')
+    .optional()
+    .or(z.literal('')),
+  closingDay: optionalDay,
+  paymentDueDay: optionalDay,
+})
+
+export type PaymentAccountFormValues = z.infer<typeof paymentAccountSchema>
+
 export type LoginFormValues = z.infer<typeof loginSchema>
 export type RegisterFormValues = z.infer<typeof registerSchema>
 export type TransactionFormValues = z.infer<typeof transactionSchema>
