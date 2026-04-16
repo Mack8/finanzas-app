@@ -103,8 +103,14 @@ export default async function DebtsPage() {
                     </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                       <span>{formatMoney(debt.monthly_amount, debt.currency)}/mes ({formatMoney(debt.monthly_amount_crc, 'CRC')})</span>
-                      <span>{debt.paid_installments}/{debt.total_installments} cuotas</span>
+                      <span className="text-xs text-muted-foreground">{debt.paid_installments}/{debt.total_installments} cuotas</span>
                       <span>Liberación: {formatDate(debt.releaseDate)}</span>
+                    </div>
+                    <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={`h-1.5 rounded-full ${(debt.paid_installments / debt.total_installments) >= 0.8 ? 'bg-success' : 'bg-danger'}`}
+                        style={{ width: `${Math.min((debt.paid_installments / debt.total_installments) * 100, 100)}%` }}
+                      />
                     </div>
                     {debt.is_active && (
                       <p className="text-sm font-medium">
