@@ -95,13 +95,13 @@ export default async function CardsPage() {
             accounts.map(account => {
               const txCount = txCountByAccount[account.id] ?? 0
               return (
-                <Card key={account.id}>
+                <Card key={account.id} className={account.type === 'credit_card' ? 'border-l-4 border-l-violet-500/50' : 'border-l-4 border-l-blue-500/50'}>
                   <CardHeader>
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <CardTitle>{account.name}</CardTitle>
                         <CardDescription className="mt-1 flex flex-wrap gap-2">
-                          <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                             {accountTypeLabels[account.type]}
                           </span>
                           {account.bank_name && <span>{account.bank_name}</span>}
