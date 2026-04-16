@@ -3,6 +3,8 @@ import type { CategoryType, CurrencyCode } from '@/types/database'
 import type { Database } from '@/types/database'
 import { roundMoney } from '@/lib/transactions'
 import { computeMonthlyIncomeCRC } from '@/lib/income'
+import { buildMonthlyTotals, groupExpensesByCategory } from '@/lib/reports'
+import type { MonthlyTotalsRow, CategoryExpense } from '@/lib/reports'
 
 export type TransactionForSummary = {
   amount_crc: number
@@ -236,4 +238,71 @@ export async function getAvailableBalance(
   const activeDebtsCRC = (debts ?? []).reduce((sum, d) => sum + d.monthly_amount_crc, 0)
 
   return computeAvailableBalance(monthlyIncomeCRC, expensesCRC, savingsContribsCRC, activeDebtsCRC)
+}
+
+export async function getMonthlyHistory(
+  supabase: SupabaseClient<Database>,
+  months: number = 6
+): Promise<MonthlyTotalsRow[]> {
+  // Calculate date range: last `months` months from today (Costa Rica timezone)
+  // dateFrom = first day of (current month - (months-1))
+  // dateTo = last day of current month
+  const { year, month } = getCurrentMonthCR()
+
+  // Calculate start month
+  const startDate = new Date(year, month - 1 - (months - 1), 1)
+  const startYear = startDate.getFullYear()
+  const startMonth = startDate.getMonth() + 1
+  const dateFrom = `${startYear}-${String(startMonth).padStart(2, '0')}-01`
+
+  const lastDay = new Date(year, month, 0).getDate()
+  const dateTo = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+
+  const { data } = await supabase
+    .from('transactions')
+    .select('amount_crc, date, category:categories(type)')
+    .gte('date', dateFrom)
+    .lte('date', dateTo)
+
+  // Transform to TransactionForMonthly format (needed by buildMonthlyTotals)
+  const transactions = (data ?? []).map(t => {
+    const rawType = (t.category as { type: string } | null)?.type
+    const category_type: CategoryType = isValidCategoryType(rawType) ? rawType : 'variable_expense'
+    const month = t.date.substring(0, 7)  // YYYY-MM
+    return { amount_crc: t.amount_crc, category_type, month }
+  })
+
+  return buildMonthlyTotals(transactions)
+}
+
+export async function getMonthlyExpensesByCategory(
+  supabase: SupabaseClient<Database>,
+  year: number,
+  month: number
+): Promise<CategoryExpense[]> {
+  const monthStr = String(month).padStart(2, '0')
+  const lastDay = new Date(year, month, 0).getDate()
+  const dateFrom = `${year}-${monthStr}-01`
+  const dateTo = `${year}-${monthStr}-${String(lastDay).padStart(2, '0')}`
+
+  const { data } = await supabase
+    .from('transactions')
+    .select('amount_crc, category_id, category:categories(type, name, color)')
+    .gte('date', dateFrom)
+    .lte('date', dateTo)
+
+  const transactions = (data ?? []).map(t => {
+    const cat = t.category as { type: string; name: string; color: string } | null
+    const rawType = cat?.type
+    const category_type: CategoryType = isValidCategoryType(rawType) ? rawType : 'variable_expense'
+    return {
+      amount_crc: t.amount_crc,
+      category_type,
+      categoryId: t.category_id ?? '',
+      categoryName: cat?.name ?? 'Sin categoría',
+      categoryColor: cat?.color ?? '#888888',
+    }
+  })
+
+  return groupExpensesByCategory(transactions)
 }
