@@ -231,12 +231,13 @@ export default async function TransactionsPage({
                     </div>
                     <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
                       <span>{formatDate(transaction.date)}</span>
-                      <span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full flex-shrink-0 inline-block" style={{ backgroundColor: transaction.category?.color ?? '#888' }} />
                         {transaction.category
                           ? `${categoryTypeLabels[transaction.category.type]} · ${transaction.category.name}`
                           : 'Sin categoría'}
                       </span>
-                      <span>{transactionTypeLabels[transaction.transaction_type]}</span>
+                      <span className="text-xs text-muted-foreground">{transactionTypeLabels[transaction.transaction_type]}</span>
                     </div>
                     {transaction.notes && (
                       <p className="text-sm text-muted-foreground italic">{transaction.notes}</p>
@@ -244,7 +245,7 @@ export default async function TransactionsPage({
                   </div>
                   <div className="flex flex-col items-start gap-3 md:items-end">
                     <div className="space-y-1 text-left md:text-right">
-                      <p className="font-semibold">
+                      <p className={`font-semibold ${transaction.category?.type === 'income' ? 'text-success' : transaction.category?.type === 'savings' ? '' : 'text-danger'}`}>
                         {formatMoney(transaction.amount, transaction.currency)}
                       </p>
                       <p className="text-sm text-muted-foreground">
