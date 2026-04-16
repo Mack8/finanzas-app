@@ -102,12 +102,11 @@ export default async function SavingsPage() {
             </Card>
           ) : (
             progressFunds.map(fund => {
-              const barColor = fund.progressPercent >= 100 ? 'bg-success' : 'bg-primary'
               const barWidth = `${Math.min(fund.progressPercent, 100)}%`
               const fundContribs = contribsByFund[fund.id] ?? []
 
               return (
-                <Card key={fund.id} className={!fund.is_active ? 'opacity-60' : ''}>
+                <Card key={fund.id} className={!fund.is_active ? 'opacity-60' : ''} style={{ borderColor: fund.color ? fund.color + '40' : undefined }}>
                   <CardHeader>
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2">
@@ -146,7 +145,7 @@ export default async function SavingsPage() {
                         aria-label={`Progreso ${fund.name}`}
                         className="h-2 overflow-hidden rounded-full bg-muted"
                       >
-                        <div className={`h-2 rounded-full transition-all ${barColor}`} style={{ width: barWidth }} />
+                        <div className="h-2 rounded-full transition-all" style={{ width: barWidth, backgroundColor: fund.color ?? '#3b82f6' }} />
                       </div>
                       {fund.monthsToGoal !== null && fund.monthsToGoal > 0 && (
                         <p className="text-xs text-muted-foreground">
