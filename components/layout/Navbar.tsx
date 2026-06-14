@@ -1,16 +1,21 @@
 import { createClient } from '@/lib/supabase/server'
 import { ThemeToggle } from './ThemeToggle'
 import { LogoutButton } from './LogoutButton'
+import { Breadcrumb } from './Breadcrumb'
+import { HamburgerButton } from './HamburgerButton'
 
 export async function Navbar() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   return (
-    <header className="h-14 border-b bg-card flex items-center justify-between px-4">
-      <div />
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground hidden sm:block">
+    <header className="sticky top-0 z-30 flex h-[70px] items-center justify-between border-b border-border bg-card px-4 md:px-6">
+      <div className="flex items-center gap-3">
+        <HamburgerButton />
+        <Breadcrumb />
+      </div>
+      <div className="flex items-center gap-1">
+        <span className="hidden text-sm text-muted-foreground sm:block mr-2">
           {user?.email}
         </span>
         <ThemeToggle />

@@ -1,39 +1,19 @@
 'use client'
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  type TooltipProps,
-} from 'recharts'
+import dynamic from 'next/dynamic'
+import { useTheme } from 'next-themes'
+import type { ApexOptions } from 'apexcharts'
 import { formatMoney } from '@/lib/format'
 import type { CategoryExpense } from '@/lib/reports'
 
-type Props = {
-  data: CategoryExpense[]
-}
+const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
 
-type ChartRow = CategoryExpense & { pct: number }
-
-function CustomTooltip({ active, payload }: TooltipProps<number, string>) {
-  if (!active || !payload?.length) return null
-  const row = payload[0].payload as ChartRow
-  return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md text-sm">
-      <p className="font-medium text-card-foreground">{row.categoryName}</p>
-      <p className="text-muted-foreground mt-0.5">
-        {formatMoney(row.totalCRC, 'CRC')}
-        <span className="ml-2 text-xs">({row.pct.toFixed(1)}%)</span>
-      </p>
-    </div>
-  )
-}
+type Props = { data: CategoryExpense[] }
 
 export function ExpensesByCategoryChart({ data }: Props) {
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
+
   if (data.length === 0) {
     return (
       <div className="flex items-center justify-center rounded-lg border border-dashed border-border py-12 text-sm text-muted-foreground">
@@ -43,44 +23,79 @@ export function ExpensesByCategoryChart({ data }: Props) {
   }
 
   const total = data.reduce((s, d) => s + d.totalCRC, 0)
-  const rows: ChartRow[] = data.map(d => ({
-    ...d,
-    pct: total > 0 ? (d.totalCRC / total) * 100 : 0,
-  }))
+  const chartHeight = Math.max(data.length * 44, 100)
 
-  const barHeight = 44
-  const chartHeight = Math.max(rows.length * barHeight, 100)
+  const options: ApexOptions = {
+    chart: {
+      type: 'bar',
+      height: chartHeight,
+      toolbar: { show: false },
+      fontFamily: 'inherit',
+      background: 'transparent',
+    },
+    theme: { mode: isDark ? 'dark' : 'light' },
+    colors: data.map(d => d.categoryColor),
+    plotOptions: {
+      bar: {
+        horizontal: true,
+        distributed: true,
+        borderRadius: 6,
+        borderRadiusApplication: 'end',
+        dataLabels: { position: 'right' },
+      },
+    },
+    dataLabels: {
+      enabled: true,
+      textAnchor: 'start',
+      formatter: (_val, opts?: { dataPointIndex?: number }) => {
+        const v = data[opts?.dataPointIndex ?? 0]?.totalCRC ?? 0
+        const pct = total > 0 ? ((v / total) * 100).toFixed(1) : '0'
+        return `${pct}%`
+      },
+      style: { fontSize: '12px', colors: [isDark ? '#9ca3af' : '#6b7280'] },
+      offsetX: 4,
+    },
+    grid: {
+      strokeDashArray: 4,
+      borderColor: isDark ? '#27303e' : '#e6ebf1',
+      xaxis: { lines: { show: true } },
+      yaxis: { lines: { show: false } },
+    },
+    xaxis: {
+      labels: {
+        formatter: (v: string) => {
+          const n = Number(v)
+          return n === 0 ? '₡0' : `₡${(n / 1000).toFixed(0)}k`
+        },
+        style: { fontSize: '12px' },
+      },
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+    },
+    yaxis: {
+      labels: {
+        style: { fontSize: '13px' },
+        maxWidth: 160,
+      },
+    },
+    tooltip: {
+      theme: isDark ? 'dark' : 'light',
+      y: {
+        formatter: (v: number) => {
+          const pct = total > 0 ? ((v / total) * 100).toFixed(1) : '0'
+          return `${formatMoney(v, 'CRC')} (${pct}%)`
+        },
+      },
+    },
+    legend: { show: false },
+  }
 
   return (
-    <ResponsiveContainer width="100%" height={chartHeight}>
-      <BarChart
-        data={rows}
-        layout="vertical"
-        margin={{ top: 0, right: 56, bottom: 0, left: 0 }}
-        barCategoryGap="30%"
-      >
-        <XAxis
-          type="number"
-          hide
-        />
-        <YAxis
-          type="category"
-          dataKey="categoryName"
-          width={148}
-          tick={{ fontSize: 13, fill: 'currentColor' }}
-          axisLine={false}
-          tickLine={false}
-        />
-        <Tooltip
-          content={<CustomTooltip />}
-          cursor={{ fill: 'transparent' }}
-        />
-        <Bar dataKey="totalCRC" radius={6} maxBarSize={28} background={{ radius: 6, fill: 'transparent' }}>
-          {rows.map((entry, index) => (
-            <Cell key={index} fill={entry.categoryColor} fillOpacity={0.9} />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+    <Chart
+      options={options}
+      series={[{ name: 'Gastos', data: data.map(d => d.totalCRC) }]}
+      type="bar"
+      height={chartHeight}
+    />
   )
 }

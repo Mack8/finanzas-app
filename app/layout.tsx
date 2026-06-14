@@ -1,9 +1,13 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import localFont from 'next/font/local'
 import { ThemeProvider } from 'next-themes'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const satoshi = localFont({
+  src: './fonts/Satoshi-Variable.woff2',
+  variable: '--font-satoshi',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'Finanzas Personales',
@@ -17,7 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={inter.variable}>
+      <body className={satoshi.variable}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

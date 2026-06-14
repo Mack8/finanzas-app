@@ -65,7 +65,7 @@ export default async function DashboardPage() {
       {/* Row 2: Area chart + Donut chart */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Area chart — 2/3 */}
-        <div className="lg:col-span-2 rounded-xl border border-border bg-card p-4">
+        <div className="lg:col-span-2 rounded-xl border border-border bg-card p-4 card-shadow">
           <h3 className="text-sm font-medium text-muted-foreground mb-3">Evolución mensual</h3>
           <DashboardAreaChart data={monthlyHistory} />
           {/* Legend */}
@@ -79,7 +79,7 @@ export default async function DashboardPage() {
           </div>
         </div>
         {/* Donut — 1/3 */}
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-xl border border-border bg-card p-4 card-shadow">
           <h3 className="text-sm font-medium text-muted-foreground mb-3">Gastos por categoría</h3>
           <DashboardDonutChart data={expensesByCategory} />
         </div>
@@ -88,13 +88,13 @@ export default async function DashboardPage() {
       {/* Row 3: Gauge + Savings + Debts */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Gauge */}
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-xl border border-border bg-card p-4 card-shadow">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Presupuesto global</h3>
           <DashboardGauge budgetProgress={budgetProgress} />
         </div>
 
         {/* Savings progress */}
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-xl border border-border bg-card p-4 card-shadow">
           <h3 className="text-sm font-medium text-muted-foreground mb-3">Fondos de ahorro</h3>
           {savingsFunds.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin fondos activos.</p>
@@ -106,7 +106,7 @@ export default async function DashboardPage() {
                   <div key={fund.id} className="space-y-1">
                     <div className="flex justify-between text-xs">
                       <span className="flex items-center gap-1.5 text-card-foreground font-medium">
-                        <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: fund.color }} />
+                        <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: fund.color ?? undefined }} />
                         {fund.name}
                       </span>
                       <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
@@ -122,7 +122,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Debts timeline */}
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-xl border border-border bg-card p-4 card-shadow">
           <h3 className="text-sm font-medium text-muted-foreground mb-3">Deudas activas</h3>
           {activeDebts.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin deudas activas.</p>

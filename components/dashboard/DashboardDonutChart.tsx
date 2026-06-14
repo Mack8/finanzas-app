@@ -1,26 +1,19 @@
 'use client'
 
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, type TooltipProps } from 'recharts'
+import dynamic from 'next/dynamic'
+import { useTheme } from 'next-themes'
+import type { ApexOptions } from 'apexcharts'
 import { formatMoney } from '@/lib/format'
 import type { CategoryExpense } from '@/lib/reports'
 
+const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
+
 type Props = { data: CategoryExpense[] }
 
-function CustomTooltip({ active, payload }: TooltipProps<number, string>) {
-  if (!active || !payload?.length) return null
-  const row = payload[0].payload as CategoryExpense & { pct: number }
-  return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md text-sm">
-      <p className="font-medium text-card-foreground">{row.categoryName}</p>
-      <p className="text-muted-foreground mt-0.5">
-        {formatMoney(row.totalCRC, 'CRC')}
-        <span className="ml-2 text-xs">({row.pct.toFixed(1)}%)</span>
-      </p>
-    </div>
-  )
-}
-
 export function DashboardDonutChart({ data }: Props) {
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
+
   if (data.length === 0) {
     return (
       <div className="flex items-center justify-center h-48 rounded-lg border border-dashed border-border text-sm text-muted-foreground">
@@ -30,41 +23,58 @@ export function DashboardDonutChart({ data }: Props) {
   }
 
   const total = data.reduce((s, d) => s + d.totalCRC, 0)
-  const rows = data.map(d => ({ ...d, pct: total > 0 ? (d.totalCRC / total) * 100 : 0 }))
+
+  const options: ApexOptions = {
+    chart: {
+      type: 'donut',
+      fontFamily: 'inherit',
+      background: 'transparent',
+    },
+    theme: { mode: isDark ? 'dark' : 'light' },
+    colors: data.map(d => d.categoryColor),
+    labels: data.map(d => d.categoryName),
+    dataLabels: { enabled: false },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '70%',
+          labels: {
+            show: true,
+            total: {
+              show: true,
+              label: 'Total',
+              fontSize: '12px',
+              formatter: () => formatMoney(total, 'CRC'),
+            },
+          },
+        },
+      },
+    },
+    tooltip: {
+      theme: isDark ? 'dark' : 'light',
+      y: {
+        formatter: (v: number) => {
+          const pct = total > 0 ? ((v / total) * 100).toFixed(1) : '0'
+          return `${formatMoney(v, 'CRC')} (${pct}%)`
+        },
+      },
+    },
+    legend: {
+      show: true,
+      position: 'bottom',
+      fontSize: '12px',
+      markers: { size: 8 },
+      itemMargin: { horizontal: 8, vertical: 4 },
+    },
+    stroke: { width: 0 },
+  }
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      <ResponsiveContainer width="100%" height={180}>
-        <PieChart>
-          <Pie
-            data={rows}
-            dataKey="totalCRC"
-            nameKey="categoryName"
-            cx="50%"
-            cy="50%"
-            innerRadius="55%"
-            outerRadius="80%"
-            paddingAngle={2}
-          >
-            {rows.map((entry) => (
-              <Cell key={entry.categoryId} fill={entry.categoryColor} stroke="transparent" />
-            ))}
-          </Pie>
-          <Tooltip content={<CustomTooltip />} />
-        </PieChart>
-      </ResponsiveContainer>
-      {/* Legend: top 4 categories */}
-      <div className="w-full space-y-1">
-        {rows.slice(0, 4).map(entry => (
-          <div key={entry.categoryId} className="flex items-center justify-between text-xs">
-            <span className="flex items-center gap-1.5 text-muted-foreground min-w-0">
-              <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: entry.categoryColor }} />
-              <span className="truncate">{entry.categoryName}</span>
-            </span>
-            <span className="text-card-foreground tabular-nums ml-2">{entry.pct.toFixed(0)}%</span>
-          </div>
-        ))}
-      </div>
-    </div>
+    <Chart
+      options={options}
+      series={data.map(d => d.totalCRC)}
+      type="donut"
+      height={220}
+    />
   )
 }
