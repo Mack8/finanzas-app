@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { computeTotals, computeBudgetProgress, getCurrentMonthCR } from './dashboard'
+import {
+  computeTotals,
+  computeBudgetProgress,
+  getCurrentMonthCR,
+  computeMomChange,
+  computeFinancialRates,
+  computeMonthPace,
+  computeExpenseSplit,
+} from './dashboard'
 
 describe('computeTotals', () => {
   it('sums income, variable and fixed expenses, savings correctly', () => {
@@ -84,5 +92,66 @@ describe('computeAvailableBalance', () => {
 
   it('returns 0 when everything is zero', () => {
     expect(computeAvailableBalance(0, 0, 0, 0)).toBe(0)
+  })
+})
+
+describe('computeMomChange', () => {
+  it('computes percent change vs previous month', () => {
+    const result = computeMomChange(120, 100)
+    expect(result.delta).toBe(20)
+    expect(result.percent).toBe(20)
+  })
+
+  it('returns null percent when previous is zero and current is not', () => {
+    expect(computeMomChange(50, 0).percent).toBeNull()
+  })
+
+  it('returns 0 percent when both are zero', () => {
+    expect(computeMomChange(0, 0).percent).toBe(0)
+  })
+})
+
+describe('computeFinancialRates', () => {
+  it('computes savings and expense rates from income', () => {
+    const rates = computeFinancialRates(
+      { income: 1000, expenses: 600, savings: 200, balance: 200 },
+      400,
+      200,
+    )
+    expect(rates.savingsRate).toBe(20)
+    expect(rates.expenseRate).toBe(60)
+    expect(rates.fixedShare).toBeCloseTo(66.67)
+    expect(rates.variableShare).toBeCloseTo(33.33)
+  })
+
+  it('returns null rates without income', () => {
+    const rates = computeFinancialRates(
+      { income: 0, expenses: 100, savings: 0, balance: -100 },
+      100,
+      0,
+    )
+    expect(rates.savingsRate).toBeNull()
+    expect(rates.expenseRate).toBeNull()
+  })
+})
+
+describe('computeMonthPace', () => {
+  it('projects monthly expenses from daily burn', () => {
+    const pace = computeMonthPace(150000, 15, 30)
+    expect(pace.dailyBurn).toBe(10000)
+    expect(pace.projectedExpenses).toBe(300000)
+    expect(pace.elapsedPercent).toBe(50)
+  })
+})
+
+describe('computeExpenseSplit', () => {
+  it('splits fixed and variable expenses', () => {
+    const split = computeExpenseSplit([
+      { amount_crc: 100, category_type: 'fixed_expense' },
+      { amount_crc: 40, category_type: 'variable_expense' },
+      { amount_crc: 20, category_type: 'income' },
+    ])
+    expect(split.fixedExpenses).toBe(100)
+    expect(split.variableExpenses).toBe(40)
   })
 })

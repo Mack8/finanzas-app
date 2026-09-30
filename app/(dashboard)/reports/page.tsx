@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { MonthPicker } from '@/components/reports/MonthPicker'
 import { ExpensesByCategoryChart } from '@/components/reports/ExpensesByCategoryChart'
 import { MonthlyTotalsChart } from '@/components/reports/MonthlyTotalsChart'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMonthCR } from '@/lib/dashboard'
 import { formatMoney } from '@/lib/format'
@@ -32,7 +33,6 @@ export default async function ReportsPage({
   const dateFrom = `${monthStr}-01`
   const dateTo = `${monthStr}-${String(lastDay).padStart(2, '0')}`
 
-  // Last 6 months window for the evolution chart
   const d = new Date(Date.UTC(currentYear, currentMonth - 1, 1))
   d.setUTCMonth(d.getUTCMonth() - 5)
   const historyFrom = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`
@@ -50,8 +50,12 @@ export default async function ReportsPage({
       .order('date', { ascending: true }),
   ])
 
-  const txForCategory = (categoryTxData ?? []).flatMap(t => {
-    const cat = t.category as { id: string; name: string; type: string; color: string } | null
+  type CategoryJoin = { id: string; name: string; type: string; color: string }
+  type CategoryTxRow = { amount_crc: number; category: CategoryJoin | null }
+  type HistoryTxRow = { amount_crc: number; date: string; category: { type: string } | null }
+
+  const txForCategory = ((categoryTxData ?? []) as unknown as CategoryTxRow[]).flatMap(t => {
+    const cat = t.category
     if (!cat) return []
     return [{
       amount_crc: t.amount_crc,
@@ -62,13 +66,13 @@ export default async function ReportsPage({
     }]
   })
 
-  const txForHistory = (historyTxData ?? []).flatMap(t => {
-    const cat = t.category as { type: string } | null
+  const txForHistory = ((historyTxData ?? []) as unknown as HistoryTxRow[]).flatMap(t => {
+    const cat = t.category
     if (!cat) return []
     return [{
       amount_crc: t.amount_crc,
       category_type: cat.type as CategoryType,
-      month: (t.date as string).slice(0, 7),
+      month: t.date.slice(0, 7),
     }]
   })
 
@@ -84,21 +88,21 @@ export default async function ReportsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight">Reportes</h2>
-          <p className="text-muted-foreground">Análisis de tus finanzas personales.</p>
-        </div>
-        <Suspense>
-          <MonthPicker defaultMonth={defaultMonth} />
-        </Suspense>
-      </div>
+      <PageHeader
+        title="Reportes"
+        description="Análisis de tus finanzas personales."
+        actions={
+          <Suspense>
+            <MonthPicker defaultMonth={defaultMonth} />
+          </Suspense>
+        }
+      />
 
       <Card>
         <CardHeader>
           <CardTitle className="capitalize">Gastos por categoría — {monthLabel}</CardTitle>
           <CardDescription>
-            Total: {formatMoney(totalExpenses, 'CRC')}
+            Total: <span className="font-semibold tabular-nums text-foreground">{formatMoney(totalExpenses, 'CRC')}</span>
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -1,7 +1,7 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { getNextCategorySortOrder } from '@/lib/categories'
+import { revalidateMoneyPaths } from '@/lib/revalidate'
 import { createClient } from '@/lib/supabase/server'
 import { categorySchema, incomeConfigSchema } from '@/lib/validations'
 import type { CategoryType } from '@/types/database'
@@ -18,8 +18,7 @@ export type CategoryActionState = {
 }
 
 function revalidateCategorySurfaces() {
-  revalidatePath('/settings')
-  revalidatePath('/transactions')
+  revalidateMoneyPaths('/settings')
 }
 
 export async function createCategoryAction(
@@ -285,7 +284,6 @@ export async function saveIncomeConfigAction(
 
   if (error) return { status: 'error', message: 'No se pudo guardar la configuración de ingresos.' }
 
-  revalidatePath('/settings')
-  revalidatePath('/')
+  revalidateMoneyPaths('/settings')
   return { status: 'success', message: 'Configuración de ingresos guardada.' }
 }

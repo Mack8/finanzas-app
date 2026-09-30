@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { groupExpensesByCategory, buildMonthlyTotals } from './reports'
+import {
+  groupExpensesByCategory,
+  buildMonthlyTotals,
+  groupByTransactionType,
+  computeReportMonthSummary,
+} from './reports'
 
 // --- groupExpensesByCategory ---
 
@@ -51,9 +56,27 @@ describe('buildMonthlyTotals', () => {
       mTx(25000,  'fixed_expense',    '2026-02'),
     ])
     expect(result).toEqual([
-      { month: '2026-01', income: 100000, expenses: 40000, savings: 5000 },
-      { month: '2026-02', income: 120000, expenses: 25000, savings: 0 },
+      { month: '2026-01', income: 100000, expenses: 40000, savings: 5000, reimbursements: 0, netExpenses: 40000 },
+      { month: '2026-02', income: 120000, expenses: 25000, savings: 0, reimbursements: 0, netExpenses: 25000 },
     ])
+  })
+
+  it('tracks reimbursements and net expenses', () => {
+    const result = buildMonthlyTotals([
+      { amount_crc: 1000, category_type: 'income' as never, month: '2026-04' },
+      { amount_crc: 400, category_type: 'variable_expense' as never, month: '2026-04' },
+      {
+        amount_crc: 100,
+        category_type: 'variable_expense' as never,
+        month: '2026-04',
+        transaction_type: 'reimbursement',
+      },
+    ])
+    expect(result[0]).toMatchObject({
+      expenses: 500,
+      reimbursements: 100,
+      netExpenses: 400,
+    })
   })
 
   it('returns empty array for empty input', () => {
@@ -66,7 +89,43 @@ describe('buildMonthlyTotals', () => {
       mTx(20000, 'income',       '2026-03'),
     ])
     expect(result).toEqual([
-      { month: '2026-03', income: 20000, expenses: 0, savings: 0 },
+      { month: '2026-03', income: 20000, expenses: 0, savings: 0, reimbursements: 0, netExpenses: 0 },
     ])
+  })
+})
+
+describe('groupByTransactionType', () => {
+  it('aggregates by personal/household/reimbursement', () => {
+    const result = groupByTransactionType([
+      { amount_crc: 100, transaction_type: 'personal' },
+      { amount_crc: 50, transaction_type: 'personal' },
+      { amount_crc: 80, transaction_type: 'household' },
+      { amount_crc: 20, transaction_type: 'reimbursement' },
+    ])
+    expect(result).toEqual([
+      { type: 'personal', label: 'Personal', totalCRC: 150, count: 2 },
+      { type: 'household', label: 'Hogar', totalCRC: 80, count: 1 },
+      { type: 'reimbursement', label: 'Reembolso', totalCRC: 20, count: 1 },
+    ])
+  })
+})
+
+describe('computeReportMonthSummary', () => {
+  it('computes net expenses and balance', () => {
+    const summary = computeReportMonthSummary([
+      { amount_crc: 1000, category_type: 'income' as never, month: '2026-01' },
+      { amount_crc: 400, category_type: 'fixed_expense' as never, month: '2026-01' },
+      {
+        amount_crc: 50,
+        category_type: 'variable_expense' as never,
+        month: '2026-01',
+        transaction_type: 'reimbursement',
+      },
+      { amount_crc: 100, category_type: 'savings' as never, month: '2026-01' },
+    ])
+    expect(summary.expenses).toBe(450)
+    expect(summary.reimbursements).toBe(50)
+    expect(summary.netExpenses).toBe(400)
+    expect(summary.balance).toBe(450)
   })
 })

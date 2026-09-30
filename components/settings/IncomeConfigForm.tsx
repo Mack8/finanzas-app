@@ -15,7 +15,7 @@ type Props = {
 const initialState: IncomeConfigState = { status: 'idle' }
 
 const selectClassName =
-  'flex h-8 w-full rounded-lg border border-input bg-background px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50'
+  'flex h-9 w-full cursor-pointer rounded-lg border border-input bg-card px-3 py-1.5 text-sm outline-none transition-colors duration-200 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30'
 
 export function IncomeConfigForm({ currentConfig }: Props) {
   const [state, formAction, pending] = useActionState(saveIncomeConfigAction, initialState)

@@ -1,7 +1,8 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { getLatestExchangeRate } from '@/lib/bccr/exchange-rate'
+import { resolveCategoryForType } from '@/lib/categories-resolve'
+import { revalidateMoneyPaths } from '@/lib/revalidate'
 import { createClient } from '@/lib/supabase/server'
 import { resolveAmountCRC, type ExchangeRateSnapshot } from '@/lib/transactions'
 import { debtSchema } from '@/lib/validations'
@@ -25,6 +26,10 @@ export type MarkPaidState = {
 export type DeleteDebtState = {
   status: 'idle' | 'error' | 'success'
   message?: string
+}
+
+function todayCR(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(new Date())
 }
 
 export async function createDebtAction(
@@ -85,15 +90,19 @@ export async function createDebtAction(
     total_installments: values.totalInstallments,
     paid_installments: 0,
     start_date: values.startDate,
+    notes: values.notes || null,
     is_active: true,
   })
 
   if (insertError) return { status: 'error', message: 'No se pudo registrar la deuda. Intentá de nuevo.' }
 
-  revalidatePath('/debts')
+  revalidateMoneyPaths()
   return { status: 'success', message: 'Deuda registrada correctamente.' }
 }
 
+/**
+ * Marks one installment paid and creates a linked ledger transaction.
+ */
 export async function markInstallmentPaidAction(
   id: string,
   _prevState: MarkPaidState,
@@ -105,34 +114,106 @@ export async function markInstallmentPaidAction(
 
   const { data: debtRow } = await supabase
     .from('debts')
-    .select('paid_installments, total_installments')
+    .select('id, name, monthly_amount, currency, monthly_amount_crc, paid_installments, total_installments, payment_account_id, is_active')
     .eq('id', id)
     .eq('user_id', user.id)
     .maybeSingle()
 
   if (!debtRow) return { status: 'error', message: 'Deuda no encontrada.' }
-  if (debtRow.paid_installments >= debtRow.total_installments) {
+  if (!debtRow.is_active || debtRow.paid_installments >= debtRow.total_installments) {
     return { status: 'error', message: 'Esta deuda ya está completamente pagada.' }
   }
 
-  const newPaid = debtRow.paid_installments + 1
+  const category = await resolveCategoryForType(
+    supabase,
+    user.id,
+    'fixed_expense',
+    ['cuota', 'deuda', 'leasing'],
+  )
+  if (!category) {
+    return {
+      status: 'error',
+      message: 'No hay categoría de gasto fijo activa (ej. Cuotas). Creá una en Configuración.',
+    }
+  }
+
+  const installmentNumber = debtRow.paid_installments + 1
+  const payDate = todayCR()
+
+  // Create ledger entry first so available balance stays consistent
+  const { data: txRow, error: txError } = await supabase
+    .from('transactions')
+    .insert({
+      user_id: user.id,
+      date: payDate,
+      description: `Cuota ${installmentNumber}/${debtRow.total_installments} · ${debtRow.name}`,
+      amount: debtRow.monthly_amount,
+      currency: debtRow.currency,
+      amount_crc: debtRow.monthly_amount_crc,
+      category_id: category.id,
+      payment_account_id: debtRow.payment_account_id,
+      transaction_type: 'personal',
+      tags: ['debt-payment'],
+      notes: null,
+      debt_id: debtRow.id,
+    })
+    .select('id')
+    .maybeSingle()
+
+  if (txError || !txRow) {
+    // Fallback if debt_id column not migrated yet
+    if (txError?.message?.includes('debt_id') || txError?.code === 'PGRST204') {
+      const { data: fallbackTx, error: fallbackErr } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: user.id,
+          date: payDate,
+          description: `Cuota ${installmentNumber}/${debtRow.total_installments} · ${debtRow.name}`,
+          amount: debtRow.monthly_amount,
+          currency: debtRow.currency,
+          amount_crc: debtRow.monthly_amount_crc,
+          category_id: category.id,
+          payment_account_id: debtRow.payment_account_id,
+          transaction_type: 'personal',
+          tags: ['debt-payment'],
+          notes: `debt:${debtRow.id}`,
+        })
+        .select('id')
+        .maybeSingle()
+
+      if (fallbackErr || !fallbackTx) {
+        return { status: 'error', message: 'No se pudo registrar la transacción de la cuota.' }
+      }
+    } else {
+      return { status: 'error', message: 'No se pudo registrar la transacción de la cuota.' }
+    }
+  }
+
+  const newPaid = installmentNumber
   const isNowComplete = newPaid >= debtRow.total_installments
 
-  // Guard in WHERE clause: only update if still unpaid — prevents double-increment on rapid clicks
   const { data: updatedRows, error } = await supabase
     .from('debts')
     .update({ paid_installments: newPaid, is_active: !isNowComplete })
     .eq('id', id)
     .eq('user_id', user.id)
-    .lt('paid_installments', debtRow.total_installments)
+    .eq('paid_installments', debtRow.paid_installments)
     .select('id')
 
-  if (error || !updatedRows?.length) return { status: 'error', message: 'No se pudo registrar el pago. Intentá de nuevo.' }
+  if (error || !updatedRows?.length) {
+    // Roll back transaction if debt update lost the race
+    if (txRow?.id) {
+      await supabase.from('transactions').delete().eq('id', txRow.id).eq('user_id', user.id)
+    }
+    return { status: 'error', message: 'No se pudo registrar el pago. Intentá de nuevo.' }
+  }
 
-  revalidatePath('/debts')
+  revalidateMoneyPaths()
   return {
     status: 'success',
-    message: isNowComplete ? 'Deuda completada. ¡Felicitaciones!' : 'Cuota marcada como pagada.',
+    message: isNowComplete
+      ? 'Deuda completada y registrada en el ledger. ¡Felicitaciones!'
+      : 'Cuota pagada y registrada como transacción.',
   }
 }
 
@@ -145,6 +226,13 @@ export async function deleteDebtAction(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { status: 'error', message: 'Tu sesión ya no es válida.' }
 
+  // Unlink txs before delete (if FK would block)
+  await supabase
+    .from('transactions')
+    .update({ debt_id: null })
+    .eq('debt_id', id)
+    .eq('user_id', user.id)
+
   const { error } = await supabase
     .from('debts')
     .delete()
@@ -153,6 +241,6 @@ export async function deleteDebtAction(
 
   if (error) return { status: 'error', message: 'No se pudo eliminar la deuda.' }
 
-  revalidatePath('/debts')
+  revalidateMoneyPaths()
   return { status: 'success' }
 }

@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidateMoneyPaths } from '@/lib/revalidate'
 import { createClient } from '@/lib/supabase/server'
 import { paymentAccountSchema } from '@/lib/validations'
 
@@ -63,7 +63,7 @@ export async function createPaymentAccountAction(
 
   if (error) return { status: 'error', message: 'No se pudo crear la cuenta. Intentá de nuevo.' }
 
-  revalidatePath('/cards')
+  revalidateMoneyPaths('/cards')
   return { status: 'success', message: 'Cuenta registrada correctamente.' }
 }
 
@@ -102,7 +102,7 @@ export async function updatePaymentAccountAction(
 
   if (error) return { status: 'error', message: 'No se pudo actualizar la cuenta.' }
 
-  revalidatePath('/cards')
+  revalidateMoneyPaths('/cards')
   return { status: 'success', message: 'Cuenta actualizada correctamente.' }
 }
 
@@ -132,6 +132,6 @@ export async function deletePaymentAccountAction(
 
   if (error) return { status: 'error', message: 'No se pudo eliminar la cuenta.' }
 
-  revalidatePath('/cards')
+  revalidateMoneyPaths('/cards')
   return { status: 'success' }
 }

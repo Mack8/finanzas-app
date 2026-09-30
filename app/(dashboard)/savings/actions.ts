@@ -1,7 +1,8 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { getLatestExchangeRate } from '@/lib/bccr/exchange-rate'
+import { resolveCategoryForType } from '@/lib/categories-resolve'
+import { revalidateMoneyPaths } from '@/lib/revalidate'
 import { createClient } from '@/lib/supabase/server'
 import { resolveAmountCRC, type ExchangeRateSnapshot } from '@/lib/transactions'
 import { contributionSchema, savingsFundSchema } from '@/lib/validations'
@@ -96,7 +97,7 @@ export async function createSavingsFundAction(
 
   if (insertError) return { status: 'error', message: 'No se pudo crear el fondo. Intentá de nuevo.' }
 
-  revalidatePath('/savings')
+  revalidateMoneyPaths()
   return { status: 'success', message: 'Fondo de ahorro creado correctamente.' }
 }
 
@@ -127,11 +128,24 @@ export async function addContributionAction(
 
   const { data: fund } = await supabase
     .from('savings_funds')
-    .select('id, current_amount_crc')
+    .select('id, name, current_amount_crc, goal_amount_crc, is_active')
     .eq('id', fundId)
     .eq('user_id', user.id)
     .maybeSingle()
   if (!fund) return { status: 'error', message: 'Fondo no encontrado.' }
+
+  const category = await resolveCategoryForType(
+    supabase,
+    user.id,
+    'savings',
+    [fund.name, 'ahorro', 'emergencia'],
+  )
+  if (!category) {
+    return {
+      status: 'error',
+      message: 'No hay categoría de ahorro activa. Creá una en Configuración.',
+    }
+  }
 
   let latestExchangeRate: ExchangeRateSnapshot | null = null
   if (values.currency === 'USD') {
@@ -158,27 +172,96 @@ export async function addContributionAction(
     }
   }
 
-  const { error: insertError } = await supabase.from('savings_contributions').insert({
-    fund_id: fundId,
+  // Prefer atomic RPC when migration 004 is applied
+  let contributionId: string | null = null
+  const { data: rpcRow, error: rpcError } = await supabase.rpc('apply_savings_contribution', {
+    p_fund_id: fundId,
+    p_user_id: user.id,
+    p_date: values.date,
+    p_amount: values.amount,
+    p_currency: values.currency,
+    p_amount_crc: amountCRC,
+    p_exchange_rate_id: exchangeRateId,
+    p_notes: values.notes || null,
+  })
+
+  if (!rpcError && rpcRow) {
+    contributionId = (rpcRow as { id: string }).id
+  } else {
+    // Fallback path (pre-migration or RPC unavailable)
+    const { data: contrib, error: insertError } = await supabase
+      .from('savings_contributions')
+      .insert({
+        fund_id: fundId,
+        user_id: user.id,
+        date: values.date,
+        amount: values.amount,
+        currency: values.currency,
+        amount_crc: amountCRC,
+        exchange_rate_id: exchangeRateId,
+        notes: values.notes || null,
+      })
+      .select('id')
+      .maybeSingle()
+
+    if (insertError || !contrib) {
+      return { status: 'error', message: 'No se pudo registrar el aporte.' }
+    }
+    contributionId = contrib.id
+
+    const newBalance = fund.current_amount_crc + amountCRC
+    const completed = fund.goal_amount_crc > 0 && newBalance >= fund.goal_amount_crc
+    const { error: updateError } = await supabase
+      .from('savings_funds')
+      .update({
+        current_amount_crc: newBalance,
+        is_active: completed ? false : fund.is_active,
+      })
+      .eq('id', fundId)
+      .eq('user_id', user.id)
+
+    if (updateError) {
+      return { status: 'error', message: 'Aporte registrado pero no se pudo actualizar el total del fondo.' }
+    }
+  }
+
+  // Linked ledger transaction (savings category)
+  const { error: txError } = await supabase.from('transactions').insert({
     user_id: user.id,
     date: values.date,
+    description: `Aporte · ${fund.name}`,
     amount: values.amount,
     currency: values.currency,
     amount_crc: amountCRC,
     exchange_rate_id: exchangeRateId,
+    category_id: category.id,
+    transaction_type: 'personal',
+    tags: ['savings-contribution'],
     notes: values.notes || null,
+    savings_contribution_id: contributionId,
   })
-  if (insertError) return { status: 'error', message: 'No se pudo registrar el aporte.' }
 
-  const { error: updateError } = await supabase
-    .from('savings_funds')
-    .update({ current_amount_crc: fund.current_amount_crc + amountCRC })
-    .eq('id', fundId)
-    .eq('user_id', user.id)
-  if (updateError) return { status: 'error', message: 'Aporte registrado pero no se pudo actualizar el total del fondo.' }
+  if (txError) {
+    // Retry without link column if migration pending
+    if (txError.message?.includes('savings_contribution_id') || txError.code === 'PGRST204') {
+      await supabase.from('transactions').insert({
+        user_id: user.id,
+        date: values.date,
+        description: `Aporte · ${fund.name}`,
+        amount: values.amount,
+        currency: values.currency,
+        amount_crc: amountCRC,
+        exchange_rate_id: exchangeRateId,
+        category_id: category.id,
+        transaction_type: 'personal',
+        tags: ['savings-contribution'],
+        notes: values.notes || `contribution:${contributionId}`,
+      })
+    }
+  }
 
-  revalidatePath('/savings')
-  return { status: 'success', message: 'Aporte registrado correctamente.' }
+  revalidateMoneyPaths()
+  return { status: 'success', message: 'Aporte registrado en el fondo y en el ledger.' }
 }
 
 export async function deleteContributionAction(
@@ -190,6 +273,17 @@ export async function deleteContributionAction(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { status: 'error', message: 'Tu sesión ya no es válida.' }
 
+  const { error: rpcError } = await supabase.rpc('revert_savings_contribution', {
+    p_contribution_id: contributionId,
+    p_user_id: user.id,
+  })
+
+  if (!rpcError) {
+    revalidateMoneyPaths()
+    return { status: 'success' }
+  }
+
+  // Fallback
   const { data: contribution } = await supabase
     .from('savings_contributions')
     .select('amount_crc, fund_id')
@@ -206,6 +300,12 @@ export async function deleteContributionAction(
     .maybeSingle()
   if (!fund) return { status: 'error', message: 'Fondo no encontrado.' }
 
+  await supabase
+    .from('transactions')
+    .delete()
+    .eq('savings_contribution_id', contributionId)
+    .eq('user_id', user.id)
+
   const { error: deleteError } = await supabase
     .from('savings_contributions')
     .delete()
@@ -214,13 +314,12 @@ export async function deleteContributionAction(
   if (deleteError) return { status: 'error', message: 'No se pudo eliminar el aporte.' }
 
   const newBalance = Math.max(0, fund.current_amount_crc - contribution.amount_crc)
-  const { error: updateError } = await supabase
+  await supabase
     .from('savings_funds')
-    .update({ current_amount_crc: newBalance })
+    .update({ current_amount_crc: newBalance, is_active: true })
     .eq('id', contribution.fund_id)
     .eq('user_id', user.id)
-  if (updateError) return { status: 'error', message: 'Aporte eliminado pero no se pudo actualizar el total del fondo.' }
 
-  revalidatePath('/savings')
+  revalidateMoneyPaths()
   return { status: 'success' }
 }

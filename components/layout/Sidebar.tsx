@@ -34,7 +34,7 @@ export function Sidebar() {
     <>
       {isMobile && isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-300"
+          className="fixed inset-0 z-40 bg-slate-950/50 backdrop-blur-[2px] transition-opacity duration-300"
           onClick={() => setIsOpen(false)}
           aria-hidden="true"
         />
@@ -43,42 +43,45 @@ export function Sidebar() {
       <aside
         className={cn(
           'overflow-hidden border-r border-sidebar-border bg-sidebar transition-[width] duration-200 ease-linear',
-          isMobile ? 'fixed bottom-0 top-0 z-50' : 'sticky top-0 h-screen',
-          isOpen ? 'w-[290px]' : 'w-0',
+          isMobile ? 'fixed bottom-0 top-0 z-50 shadow-elevated' : 'sticky top-0 h-screen',
+          isOpen ? 'w-[280px]' : 'w-0',
         )}
         aria-label="Navegación principal"
         aria-hidden={!isOpen}
       >
-        <div className="flex h-full flex-col py-8 pl-6 pr-4">
-          {/* Logo */}
-          <div className="flex items-center justify-between mb-8 pr-2">
+        <div className="flex h-full w-[280px] flex-col px-4 py-6">
+          <div className="mb-8 flex items-center justify-between px-2">
             <Link
               href="/"
-              className="flex items-center gap-2.5"
+              className="flex items-center gap-2.5 transition-opacity hover:opacity-90"
               onClick={() => isMobile && toggleSidebar()}
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-                <Wallet className="h-5 w-5 text-white" />
+              <div className="flex size-9 items-center justify-center rounded-xl bg-primary shadow-sm">
+                <Wallet className="size-5 text-primary-foreground" />
               </div>
-              <span className="text-lg font-semibold text-sidebar-foreground">
-                Finanzas
-              </span>
+              <div className="leading-tight">
+                <span className="block text-base font-semibold text-sidebar-foreground">
+                  Finanzas
+                </span>
+                <span className="block text-[11px] text-muted-foreground">
+                  Control personal
+                </span>
+              </div>
             </Link>
 
             {isMobile && (
               <button
                 onClick={toggleSidebar}
-                className="text-muted-foreground hover:text-foreground"
+                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               >
-                <X className="h-5 w-5" />
+                <X className="size-5" />
                 <span className="sr-only">Cerrar menú</span>
               </button>
             )}
           </div>
 
-          {/* Nav */}
           <div className="flex-1 overflow-y-auto">
-            <p className="mb-4 px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               Menú principal
             </p>
             <nav>
@@ -91,26 +94,39 @@ export function Sidebar() {
                         href={href}
                         onClick={() => isMobile && toggleSidebar()}
                         className={cn(
-                          'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                          'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
                           active
-                            ? 'bg-primary/10 text-primary'
-                            : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                            ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
+                            : 'text-sidebar-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground',
                         )}
                       >
-                        <Icon
-                          className={cn('h-5 w-5 shrink-0', active ? 'text-primary' : '')}
-                          aria-hidden="true"
-                        />
-                        <span>{label}</span>
                         {active && (
-                          <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
+                          <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
                         )}
+                        <span
+                          className={cn(
+                            'flex size-8 items-center justify-center rounded-lg transition-colors',
+                            active
+                              ? 'bg-primary/10 text-primary'
+                              : 'bg-transparent text-muted-foreground group-hover:text-sidebar-accent-foreground',
+                          )}
+                        >
+                          <Icon className="size-4 shrink-0" aria-hidden="true" />
+                        </span>
+                        <span>{label}</span>
                       </Link>
                     </li>
                   )
                 })}
               </ul>
             </nav>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-sidebar-border bg-muted/30 p-3">
+            <p className="text-xs font-medium text-sidebar-foreground">Costa Rica · CRC</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Tipo de cambio BCCR integrado
+            </p>
           </div>
         </div>
       </aside>

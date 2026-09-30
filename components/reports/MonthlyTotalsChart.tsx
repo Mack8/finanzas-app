@@ -16,7 +16,7 @@ export function MonthlyTotalsChart({ data }: Props) {
 
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-lg border border-dashed border-border py-12 text-sm text-muted-foreground">
+      <div className="empty-state">
         No hay transacciones registradas en los últimos 6 meses.
       </div>
     )
@@ -37,18 +37,18 @@ export function MonthlyTotalsChart({ data }: Props) {
       background: 'transparent',
     },
     theme: { mode: isDark ? 'dark' : 'light' },
-    colors: ['#22ad5c', '#f23030', '#3c50e0'],
+    colors: ['#16a34a', '#dc2626', '#2563eb'],
     plotOptions: {
       bar: {
-        columnWidth: '60%',
-        borderRadius: 4,
+        columnWidth: '55%',
+        borderRadius: 6,
         borderRadiusApplication: 'end',
       },
     },
     dataLabels: { enabled: false },
     grid: {
       strokeDashArray: 4,
-      borderColor: isDark ? '#27303e' : '#e6ebf1',
+      borderColor: isDark ? '#1f2937' : '#e2e8f0',
       yaxis: { lines: { show: true } },
       xaxis: { lines: { show: false } },
     },

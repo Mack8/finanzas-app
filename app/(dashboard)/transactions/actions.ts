@@ -1,7 +1,8 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { getLatestExchangeRate } from '@/lib/bccr/exchange-rate'
+import { assertPaymentAccountOwnership } from '@/lib/categories-resolve'
+import { revalidateMoneyPaths } from '@/lib/revalidate'
 import { createClient } from '@/lib/supabase/server'
 import { resolveAmountCRC, type ExchangeRateSnapshot } from '@/lib/transactions'
 import { transactionSchema } from '@/lib/validations'
@@ -66,6 +67,15 @@ export async function createTransactionAction(
     }
   }
 
+  const accountCheck = await assertPaymentAccountOwnership(
+    supabase,
+    user.id,
+    values.paymentAccountId,
+  )
+  if (!accountCheck.ok) {
+    return { status: 'error', message: accountCheck.message }
+  }
+
   let latestExchangeRate: ExchangeRateSnapshot | null = null
 
   if (values.currency === 'USD') {
@@ -117,7 +127,7 @@ export async function createTransactionAction(
     }
   }
 
-  revalidatePath('/transactions')
+  revalidateMoneyPaths()
 
   return {
     status: 'success',
@@ -165,6 +175,15 @@ export async function updateTransactionAction(
     return { status: 'error', message: 'La categoría seleccionada no es válida para tu cuenta.' }
   }
 
+  const accountCheck = await assertPaymentAccountOwnership(
+    supabase,
+    user.id,
+    values.paymentAccountId,
+  )
+  if (!accountCheck.ok) {
+    return { status: 'error', message: accountCheck.message }
+  }
+
   let latestExchangeRate: ExchangeRateSnapshot | null = null
   if (values.currency === 'USD') {
     try {
@@ -203,6 +222,7 @@ export async function updateTransactionAction(
       payment_account_id: values.paymentAccountId || null,
       transaction_type: values.transactionType,
       notes: values.notes || null,
+      updated_at: new Date().toISOString(),
     })
     .eq('id', id)
     .eq('user_id', user.id)
@@ -212,7 +232,7 @@ export async function updateTransactionAction(
     return { status: 'error', message: 'No se pudo actualizar la transacción. Intentá de nuevo.' }
   }
 
-  revalidatePath('/transactions')
+  revalidateMoneyPaths()
   return { status: 'success', message: 'Transacción actualizada correctamente.' }
 }
 
@@ -230,6 +250,6 @@ export async function deleteTransactionAction(
 
   if (error) return { status: 'error', message: 'No se pudo eliminar la transacción.' }
 
-  revalidatePath('/transactions')
+  revalidateMoneyPaths()
   return { status: 'success' }
 }

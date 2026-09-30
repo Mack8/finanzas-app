@@ -9,53 +9,66 @@ export function DashboardGauge({ budgetProgress }: Props) {
   const totalBudget = budgetProgress.reduce((s, b) => s + b.budgetCRC, 0)
   const pct = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0
 
-  // SVG semicircle: viewBox 0 0 200 110, r=80, cx=100, cy=100
   const r = 80
   const cx = 100
   const cy = 100
-  const circumference = Math.PI * r  // half circle = πr
+  const circumference = Math.PI * r
   const filled = (pct / 100) * circumference
 
-  // Color: green <70, amber 70-90, red >90
-  const color = pct >= 90 ? 'oklch(0.60 0.22 25)' : pct >= 70 ? 'oklch(0.70 0.15 55)' : 'oklch(0.65 0.18 142)'
+  const color = pct >= 90 ? 'var(--danger)' : pct >= 70 ? 'var(--warning)' : 'var(--success)'
+  const label =
+    pct >= 90 ? 'Sobre el límite' : pct >= 70 ? 'Cerca del límite' : 'Dentro del presupuesto'
 
   if (budgetProgress.length === 0) {
     return (
-      <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+      <div className="empty-state flex h-36 items-center justify-center border-0 bg-transparent p-4">
         Sin presupuesto configurado.
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col items-center">
-      <svg viewBox="0 0 200 110" className="w-full max-w-[200px]">
-        {/* Background arc */}
+    <div className="flex flex-col items-center gap-2">
+      <svg viewBox="0 0 200 120" className="w-full max-w-[220px]">
         <path
           d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
           fill="none"
           stroke="currentColor"
-          strokeWidth="16"
+          strokeWidth="14"
           strokeLinecap="round"
-          className="text-muted opacity-30"
+          className="text-muted opacity-40"
         />
-        {/* Filled arc */}
         <path
           d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
           fill="none"
           stroke={color}
-          strokeWidth="16"
+          strokeWidth="14"
           strokeLinecap="round"
           strokeDasharray={`${filled} ${circumference}`}
         />
-        {/* Center text */}
-        <text x={cx} y={cy - 8} textAnchor="middle" className="fill-current text-foreground" fontSize="28" fontWeight="bold">
+        <text
+          x={cx}
+          y={cy - 10}
+          textAnchor="middle"
+          fill="currentColor"
+          className="text-foreground"
+          fontSize="30"
+          fontWeight="700"
+        >
           {pct.toFixed(0)}%
         </text>
-        <text x={cx} y={cy + 12} textAnchor="middle" className="fill-current text-muted-foreground" fontSize="11">
+        <text
+          x={cx}
+          y={cy + 12}
+          textAnchor="middle"
+          fill="currentColor"
+          className="text-muted-foreground"
+          fontSize="11"
+        >
           del presupuesto
         </text>
       </svg>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
     </div>
   )
 }

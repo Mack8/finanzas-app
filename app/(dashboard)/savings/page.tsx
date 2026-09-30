@@ -1,7 +1,10 @@
 import { redirect } from 'next/navigation'
+import { PiggyBank, Target, CheckCircle2 } from 'lucide-react'
 import { AddContributionDialog } from '@/components/savings/AddContributionDialog'
 import { CreateSavingsFundForm } from '@/components/savings/CreateSavingsFundForm'
 import { DeleteContributionButton } from '@/components/savings/DeleteContributionButton'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { KpiCard } from '@/components/layout/KpiCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getLatestExchangeRate } from '@/lib/bccr/exchange-rate'
 import { formatDate, formatMoney } from '@/lib/format'
@@ -51,51 +54,42 @@ export default async function SavingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <h2 className="text-2xl font-semibold tracking-tight">Ahorro</h2>
-        <p className="text-muted-foreground">Fondos de ahorro con metas y seguimiento de aportes.</p>
-      </div>
+      <PageHeader
+        title="Ahorro"
+        description="Fondos de ahorro con metas y seguimiento de aportes."
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>Total ahorrado</CardTitle>
-            <CardDescription>Suma de todos los fondos en CRC</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold text-success">{formatMoney(totalSavedCRC, 'CRC')}</p>
-          </CardContent>
-        </Card>
-
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>Total de metas</CardTitle>
-            <CardDescription>Suma de objetivos en CRC</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">{formatMoney(totalGoalCRC, 'CRC')}</p>
-          </CardContent>
-        </Card>
-
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>Fondos activos</CardTitle>
-            <CardDescription>Con meta pendiente</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">{activeFunds}</p>
-          </CardContent>
-        </Card>
+        <KpiCard
+          title="Total ahorrado"
+          description="Suma de todos los fondos"
+          value={formatMoney(totalSavedCRC, 'CRC')}
+          icon={PiggyBank}
+          tone="success"
+        />
+        <KpiCard
+          title="Total de metas"
+          description="Objetivos en CRC"
+          value={formatMoney(totalGoalCRC, 'CRC')}
+          icon={Target}
+          tone="primary"
+        />
+        <KpiCard
+          title="Fondos activos"
+          description="Con meta pendiente"
+          value={activeFunds}
+          icon={CheckCircle2}
+        />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,440px)_1fr]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_1fr]">
         <CreateSavingsFundForm latestExchangeRate={latestExchangeRate} />
 
         <div className="space-y-4">
           {progressFunds.length === 0 ? (
             <Card>
               <CardContent className="pt-6">
-                <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+                <div className="empty-state">
                   No hay fondos de ahorro registrados todavía.
                 </div>
               </CardContent>
@@ -106,17 +100,21 @@ export default async function SavingsPage() {
               const fundContribs = contribsByFund[fund.id] ?? []
 
               return (
-                <Card key={fund.id} className={!fund.is_active ? 'opacity-60' : ''} style={{ borderColor: fund.color ? fund.color + '40' : undefined }}>
+                <Card
+                  key={fund.id}
+                  className={!fund.is_active ? 'opacity-70' : ''}
+                  style={{ borderLeftWidth: 4, borderLeftColor: fund.color ?? '#2563eb' }}
+                >
                   <CardHeader>
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
                         <span
-                          className="inline-flex h-3 w-3 flex-shrink-0 rounded-full"
-                          style={{ backgroundColor: fund.color ?? '#3b82f6' }}
+                          className="inline-flex size-2.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: fund.color ?? '#2563eb' }}
                         />
-                        <CardTitle>{fund.name}</CardTitle>
+                        <CardTitle className="truncate">{fund.name}</CardTitle>
                         {!fund.is_active && (
-                          <span className="rounded-full bg-success/15 px-2 py-0.5 text-xs text-success">Completado</span>
+                          <span className="badge-success">Completado</span>
                         )}
                       </div>
                       <AddContributionDialog
@@ -132,8 +130,8 @@ export default async function SavingsPage() {
                   <CardContent className="space-y-4">
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-sm">
-                        <span className="font-medium">{formatMoney(fund.current_amount_crc, 'CRC')}</span>
-                        <span className="text-muted-foreground">
+                        <span className="font-semibold tabular-nums">{formatMoney(fund.current_amount_crc, 'CRC')}</span>
+                        <span className="tabular-nums text-muted-foreground">
                           {formatMoney(fund.goal_amount_crc, 'CRC')} ({fund.progressPercent.toFixed(0)}%)
                         </span>
                       </div>
@@ -143,9 +141,12 @@ export default async function SavingsPage() {
                         aria-valuemin={0}
                         aria-valuemax={100}
                         aria-label={`Progreso ${fund.name}`}
-                        className="h-2 overflow-hidden rounded-full bg-muted"
+                        className="progress-track"
                       >
-                        <div className="h-2 rounded-full transition-all" style={{ width: barWidth, backgroundColor: fund.color ?? '#3b82f6' }} />
+                        <div
+                          className="progress-fill"
+                          style={{ width: barWidth, backgroundColor: fund.color ?? '#2563eb' }}
+                        />
                       </div>
                       {fund.monthsToGoal !== null && fund.monthsToGoal > 0 && (
                         <p className="text-xs text-muted-foreground">
@@ -155,14 +156,18 @@ export default async function SavingsPage() {
                     </div>
 
                     {fundContribs.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Aportes recientes</p>
+                      <div className="space-y-2 border-t border-border pt-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Aportes recientes
+                        </p>
                         {fundContribs.slice(0, 5).map(contrib => (
                           <div key={contrib.id} className="flex items-center justify-between gap-2 text-sm">
-                            <div className="flex flex-wrap gap-3 text-muted-foreground">
+                            <div className="flex min-w-0 flex-wrap gap-3 text-muted-foreground">
                               <span>{formatDate(contrib.date)}</span>
-                              <span>{formatMoney(contrib.amount, contrib.currency)}</span>
-                              {contrib.notes && <span className="italic">{contrib.notes}</span>}
+                              <span className="font-medium tabular-nums text-foreground">
+                                {formatMoney(contrib.amount, contrib.currency)}
+                              </span>
+                              {contrib.notes && <span className="truncate italic">{contrib.notes}</span>}
                             </div>
                             <DeleteContributionButton
                               contributionId={contrib.id}

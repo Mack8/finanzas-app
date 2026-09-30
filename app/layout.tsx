@@ -1,11 +1,19 @@
 import type { Metadata } from 'next'
-import localFont from 'next/font/local'
+import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
 import './globals.css'
 
-const satoshi = localFont({
-  src: './fonts/Satoshi-Variable.woff2',
-  variable: '--font-satoshi',
+const ibmPlexSans = IBM_Plex_Sans({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-ibm-plex-sans',
+  display: 'swap',
+})
+
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-ibm-plex-mono',
   display: 'swap',
 })
 
@@ -21,7 +29,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={satoshi.variable}>
+      <body className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} font-sans`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

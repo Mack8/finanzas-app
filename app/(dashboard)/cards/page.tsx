@@ -1,7 +1,10 @@
 import { redirect } from 'next/navigation'
+import { CreditCard, Landmark, WalletCards } from 'lucide-react'
 import { CreateAccountForm } from '@/components/cards/CreateAccountForm'
 import { DeleteAccountButton } from '@/components/cards/DeleteAccountButton'
 import { EditAccountDialog } from '@/components/cards/EditAccountDialog'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { KpiCard } from '@/components/layout/KpiCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/server'
 import type { PaymentAccount } from '@/types/domain'
@@ -42,51 +45,41 @@ export default async function CardsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <h2 className="text-2xl font-semibold tracking-tight">Tarjetas y cuentas</h2>
-        <p className="text-muted-foreground">Administrá tus tarjetas de crédito y cuentas bancarias.</p>
-      </div>
+      <PageHeader
+        title="Tarjetas y cuentas"
+        description="Administrá tus tarjetas de crédito y cuentas bancarias."
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>Total de cuentas</CardTitle>
-            <CardDescription>Registradas en el sistema</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">{totalAccounts}</p>
-          </CardContent>
-        </Card>
-
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>Tarjetas de crédito</CardTitle>
-            <CardDescription>Registradas</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">{creditCards}</p>
-          </CardContent>
-        </Card>
-
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>Cuentas bancarias</CardTitle>
-            <CardDescription>Registradas</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">{bankAccounts}</p>
-          </CardContent>
-        </Card>
+        <KpiCard
+          title="Total de cuentas"
+          description="Registradas"
+          value={totalAccounts}
+          icon={WalletCards}
+          tone="primary"
+        />
+        <KpiCard
+          title="Tarjetas de crédito"
+          description="Registradas"
+          value={creditCards}
+          icon={CreditCard}
+        />
+        <KpiCard
+          title="Cuentas bancarias"
+          description="Registradas"
+          value={bankAccounts}
+          icon={Landmark}
+        />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,440px)_1fr]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_1fr]">
         <CreateAccountForm />
 
         <div className="space-y-4">
           {accounts.length === 0 ? (
             <Card>
               <CardContent className="pt-6">
-                <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+                <div className="empty-state">
                   No hay cuentas registradas todavía.
                 </div>
               </CardContent>
@@ -94,18 +87,32 @@ export default async function CardsPage() {
           ) : (
             accounts.map(account => {
               const txCount = txCountByAccount[account.id] ?? 0
+              const isCard = account.type === 'credit_card'
               return (
-                <Card key={account.id} className={account.type === 'credit_card' ? 'border-l-4 border-l-violet-500/50' : 'border-l-4 border-l-blue-500/50'}>
+                <Card
+                  key={account.id}
+                  style={{
+                    borderLeftWidth: 4,
+                    borderLeftColor: isCard ? 'var(--chart-5)' : 'var(--primary)',
+                  }}
+                >
                   <CardHeader>
                     <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <CardTitle>{account.name}</CardTitle>
-                        <CardDescription className="mt-1 flex flex-wrap gap-2">
-                          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                      <div className="min-w-0 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`flex size-9 items-center justify-center rounded-xl ${isCard ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' : 'bg-primary/10 text-primary'}`}>
+                            {isCard ? <CreditCard className="size-4" /> : <Landmark className="size-4" />}
+                          </div>
+                          <CardTitle className="truncate">{account.name}</CardTitle>
+                        </div>
+                        <CardDescription className="flex flex-wrap gap-2">
+                          <span className="badge-muted">
                             {accountTypeLabels[account.type]}
                           </span>
                           {account.bank_name && <span>{account.bank_name}</span>}
-                          {account.last_four && <span>····{account.last_four}</span>}
+                          {account.last_four && (
+                            <span className="font-mono tabular-nums">····{account.last_four}</span>
+                          )}
                           {account.closing_day && (
                             <span>Cierre: día {account.closing_day}</span>
                           )}
@@ -126,7 +133,9 @@ export default async function CardsPage() {
                   </CardHeader>
                   {txCount > 0 && (
                     <CardContent>
-                      <p className="text-sm text-muted-foreground">{txCount} transacción(es) asociada(s)</p>
+                      <p className="text-sm text-muted-foreground">
+                        {txCount} transacción(es) asociada(s)
+                      </p>
                     </CardContent>
                   )}
                 </Card>

@@ -1,6 +1,7 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
+import { ChevronRight } from 'lucide-react'
 
 const labels: Record<string, string> = {
   '/':             'Dashboard',
@@ -17,10 +18,10 @@ export function Breadcrumb() {
   const label = labels[pathname] ?? 'Finanzas'
 
   return (
-    <nav className="flex items-center gap-1.5 text-sm">
-      <span className="text-muted-foreground">Finanzas</span>
-      <span className="text-muted-foreground">/</span>
-      <span className="font-medium text-foreground">{label}</span>
+    <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-sm">
+      <span className="hidden text-muted-foreground sm:inline">Finanzas</span>
+      <ChevronRight className="hidden size-3.5 shrink-0 text-muted-foreground/70 sm:block" aria-hidden="true" />
+      <span className="truncate font-semibold text-foreground">{label}</span>
     </nav>
   )
 }

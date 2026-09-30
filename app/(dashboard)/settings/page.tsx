@@ -1,8 +1,11 @@
 import { redirect } from 'next/navigation'
+import { FolderTree, Eye, Wallet } from 'lucide-react'
 import { CreateCategoryForm } from '@/components/settings/CreateCategoryForm'
 import { IncomeConfigForm } from '@/components/settings/IncomeConfigForm'
 import { DeleteCategoryButton } from '@/components/settings/DeleteCategoryButton'
 import { EditCategoryDialog } from '@/components/settings/EditCategoryDialog'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { KpiCard } from '@/components/layout/KpiCard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { categoryTypeLabels } from '@/lib/categories'
@@ -46,7 +49,7 @@ export default async function SettingsPage() {
       .from('income_config')
       .select('id, user_id, first_payment_amount, first_payment_day, second_payment_amount, second_payment_day, currency, effective_from, created_at')
       .eq('user_id', user.id)
-      .lte('effective_from', new Date().toISOString().slice(0, 10))
+      .lte('effective_from', new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(new Date()))
       .order('effective_from', { ascending: false })
       .limit(1),
   ])
@@ -77,47 +80,35 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <h2 className="text-2xl font-semibold tracking-tight">Configuración</h2>
-        <p className="text-muted-foreground">
-          Gestión de categorías personalizadas y visibilidad de categorías activas en transacciones.
-        </p>
-      </div>
+      <PageHeader
+        title="Configuración"
+        description="Gestión de categorías e ingresos mensuales."
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>Total</CardTitle>
-            <CardDescription>Categorías registradas</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">{categories.length}</p>
-          </CardContent>
-        </Card>
-
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>Activas</CardTitle>
-            <CardDescription>Disponibles en formularios</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold text-success">{activeCount}</p>
-          </CardContent>
-        </Card>
-
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>Con presupuesto</CardTitle>
-            <CardDescription>Categorías con monto mensual</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">{budgetedCount}</p>
-            <p className="mt-1 text-sm text-muted-foreground">Inactivas: {inactiveCount}</p>
-          </CardContent>
-        </Card>
+        <KpiCard
+          title="Total"
+          description="Categorías registradas"
+          value={categories.length}
+          icon={FolderTree}
+          tone="primary"
+        />
+        <KpiCard
+          title="Activas"
+          description="Disponibles en formularios"
+          value={activeCount}
+          icon={Eye}
+          tone="success"
+        />
+        <KpiCard
+          title="Con presupuesto"
+          description={`Inactivas: ${inactiveCount}`}
+          value={budgetedCount}
+          icon={Wallet}
+        />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,440px)_1fr]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_1fr]">
         <CreateCategoryForm />
 
         <Card>
@@ -127,43 +118,34 @@ export default async function SettingsPage() {
               Podés ocultar categorías sin borrar su historial asociado.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-5">
+          <CardContent className="space-y-6">
             {groupedCategories.length === 0 ? (
-              <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+              <div className="empty-state">
                 No hay categorías disponibles todavía.
               </div>
             ) : (
               groupedCategories.map(([type, items]) => (
                 <section key={type} className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                       {categoryTypeLabels[type]}
                     </h3>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="badge-muted">
                       {items.filter(item => item.is_active).length} activas
                     </span>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {items.map(category => (
-                      <div
-                        key={category.id}
-                        className="flex flex-col gap-4 rounded-lg border p-4 md:flex-row md:items-start md:justify-between"
-                      >
-                        <div className="space-y-2">
+                      <div key={category.id} className="list-row">
+                        <div className="min-w-0 space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
                             <span
-                              className="inline-flex h-3 w-3 rounded-full"
+                              className="inline-flex size-2.5 rounded-full"
                               style={{ backgroundColor: category.color }}
                             />
-                            <p className="font-medium">{category.name}</p>
-                            <span
-                              className={
-                                category.is_active
-                                  ? 'rounded-full bg-success/15 px-2 py-0.5 text-xs text-success'
-                                  : 'rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground'
-                              }
-                            >
+                            <p className="font-medium text-foreground">{category.name}</p>
+                            <span className={category.is_active ? 'badge-success' : 'badge-muted'}>
                               {category.is_active ? 'Activa' : 'Inactiva'}
                             </span>
                           </div>
@@ -172,7 +154,7 @@ export default async function SettingsPage() {
                             <span>Orden {category.sort_order}</span>
                             <span>{categoryTypeLabels[category.type]}</span>
                             {category.monthly_budget_amount !== null && (
-                              <span>
+                              <span className="tabular-nums">
                                 Presupuesto {formatMoney(
                                   category.monthly_budget_amount,
                                   category.monthly_budget_currency
@@ -182,7 +164,7 @@ export default async function SettingsPage() {
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex shrink-0 flex-wrap gap-2">
                           <EditCategoryDialog category={category} />
                           <DeleteCategoryButton
                             categoryId={category.id}
@@ -211,10 +193,12 @@ export default async function SettingsPage() {
         </Card>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div>
-          <h3 className="text-lg font-semibold">Ingresos</h3>
-          <p className="text-sm text-muted-foreground">Configurá tu salario para calcular el saldo disponible mensual.</p>
+          <h3 className="text-lg font-semibold tracking-tight">Ingresos</h3>
+          <p className="text-sm text-muted-foreground">
+            Configurá tu salario para calcular el saldo disponible mensual.
+          </p>
         </div>
         <IncomeConfigForm currentConfig={currentIncomeConfig} />
       </div>

@@ -11,9 +11,9 @@ export default function DashboardLayout({
     <SidebarProvider>
       <div className="flex min-h-screen bg-background">
         <Sidebar />
-        <div className="flex flex-col flex-1 min-w-0">
+        <div className="flex min-w-0 flex-1 flex-col">
           <Navbar />
-          <main className="flex-1 p-4 md:p-6 2xl:p-10">
+          <main className="mx-auto w-full max-w-[1600px] flex-1 p-4 md:p-6 xl:p-8">
             {children}
           </main>
         </div>

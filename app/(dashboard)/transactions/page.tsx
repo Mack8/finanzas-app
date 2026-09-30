@@ -1,17 +1,22 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
+import { ArrowLeftRight, TrendingDown, TrendingUp, Banknote } from 'lucide-react'
 import { CreateTransactionForm } from '@/components/transactions/CreateTransactionForm'
 import { DeleteTransactionDialog } from '@/components/transactions/DeleteTransactionDialog'
 import { EditTransactionDialog } from '@/components/transactions/EditTransactionDialog'
 import { RefreshExchangeRateButton } from '@/components/transactions/RefreshExchangeRateButton'
 import { TransactionFilters } from '@/components/transactions/TransactionFilters'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { KpiCard } from '@/components/layout/KpiCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getLatestExchangeRate, isExchangeRateSyncConfigured } from '@/lib/bccr/exchange-rate'
 import { formatDate, formatMoney } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
 import { buildTransactionFilters } from '@/lib/transactions'
 import { getCurrentMonthCR } from '@/lib/dashboard'
+import { computeLedgerTotals } from '@/lib/ledger'
 import type { Category, ExchangeRate, Transaction } from '@/types/domain'
+import type { CategoryType } from '@/types/database'
 
 type CategoryOption = Pick<Category, 'id' | 'name' | 'type' | 'color'>
 
@@ -114,91 +119,69 @@ export default async function TransactionsPage({
 
   const exchangeRateSyncConfigured = isExchangeRateSyncConfigured()
 
-  const totals = transactions.reduce(
-    (acc, t) => {
-      if (t.category?.type === 'income') {
-        acc.income += t.amount_crc
-      } else {
-        acc.expense += t.amount_crc
-      }
-      return acc
-    },
-    { income: 0, expense: 0 }
+  const ledgerTotals = computeLedgerTotals(
+    transactions.map(t => ({
+      amount_crc: t.amount_crc,
+      category_type: (t.category?.type ?? 'variable_expense') as CategoryType,
+      transaction_type: t.transaction_type,
+    })),
   )
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <h2 className="text-2xl font-semibold tracking-tight">Transacciones</h2>
-        <p className="text-muted-foreground">Registrá y consultá tus movimientos financieros.</p>
-      </div>
+      <PageHeader
+        title="Transacciones"
+        description="Registrá y consultá tus movimientos financieros."
+      />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>Resultados</CardTitle>
-            <CardDescription>Transacciones en el período</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">{transactions.length}</p>
-          </CardContent>
-        </Card>
-
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>Ingresos</CardTitle>
-            <CardDescription>Convertidos a CRC</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold text-success">
-              {formatMoney(totals.income, 'CRC')}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>Gastos</CardTitle>
-            <CardDescription>Convertidos a CRC</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold text-danger">
-              {formatMoney(totals.expense, 'CRC')}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>Tipo de cambio</CardTitle>
-            <CardDescription>
-              {latestExchangeRate
-                ? `Venta BCCR ${formatDate(latestExchangeRate.date)}`
-                : 'Sin datos'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">
-              {latestExchangeRate ? latestExchangeRate.usd_to_crc.toFixed(2) : 'N/D'}
-            </p>
-            {exchangeRateSyncConfigured ? (
-              <div className="mt-3">
-                <RefreshExchangeRateButton />
-              </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard
+          title="Resultados"
+          description="En el período"
+          value={transactions.length}
+          icon={ArrowLeftRight}
+          tone="primary"
+        />
+        <KpiCard
+          title="Ingresos"
+          description="Categoría income · CRC"
+          value={formatMoney(ledgerTotals.income, 'CRC')}
+          icon={TrendingUp}
+          tone="success"
+        />
+        <KpiCard
+          title="Gastos"
+          description="Fijos + variables (sin ahorro)"
+          value={formatMoney(ledgerTotals.expenses, 'CRC')}
+          icon={TrendingDown}
+          tone="danger"
+        />
+        <KpiCard
+          title="Tipo de cambio"
+          description={
+            latestExchangeRate
+              ? `Venta BCCR ${formatDate(latestExchangeRate.date)}`
+              : 'Sin datos'
+          }
+          value={latestExchangeRate ? latestExchangeRate.usd_to_crc.toFixed(2) : 'N/D'}
+          icon={Banknote}
+          footer={
+            exchangeRateSyncConfigured ? (
+              <RefreshExchangeRateButton />
             ) : (
-              <p className="mt-3 text-sm text-warning">
-                Configurá BCCR y `SUPABASE_SERVICE_ROLE_KEY` para sincronizar esta tasa.
+              <p className="text-xs text-warning">
+                Configurá BCCR y SUPABASE_SERVICE_ROLE_KEY para sincronizar.
               </p>
-            )}
-          </CardContent>
-        </Card>
+            )
+          }
+        />
       </div>
 
       <Suspense fallback={<div className="h-8" />}>
         <TransactionFilters categories={categories} defaultMonth={monthStr} />
       </Suspense>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,440px)_1fr]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_1fr]">
         <CreateTransactionForm
           categories={categories}
           latestExchangeRate={latestExchangeRate}
@@ -210,45 +193,43 @@ export default async function TransactionsPage({
             <CardTitle>Historial</CardTitle>
             <CardDescription>Hasta 50 movimientos según los filtros activos.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2">
             {transactions.length === 0 ? (
-              <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+              <div className="empty-state">
                 No hay transacciones para el período seleccionado.
               </div>
             ) : (
               transactions.map(transaction => (
-                <div
-                  key={transaction.id}
-                  className="flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-start md:justify-between"
-                >
-                  <div className="space-y-2">
+                <div key={transaction.id} className="list-row">
+                  <div className="min-w-0 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <span
-                        className="inline-flex h-3 w-3 rounded-full"
+                        className="inline-flex size-2.5 rounded-full"
                         style={{ backgroundColor: transaction.category?.color ?? '#6b7280' }}
                       />
-                      <p className="font-medium">{transaction.description}</p>
+                      <p className="font-medium text-foreground">{transaction.description}</p>
+                      <span className="badge-muted">
+                        {transactionTypeLabels[transaction.transaction_type]}
+                      </span>
                     </div>
                     <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
                       <span>{formatDate(transaction.date)}</span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full flex-shrink-0 inline-block" style={{ backgroundColor: transaction.category?.color ?? '#888' }} />
+                      <span>
                         {transaction.category
                           ? `${categoryTypeLabels[transaction.category.type]} · ${transaction.category.name}`
                           : 'Sin categoría'}
                       </span>
-                      <span className="text-xs text-muted-foreground">{transactionTypeLabels[transaction.transaction_type]}</span>
                     </div>
                     {transaction.notes && (
-                      <p className="text-sm text-muted-foreground italic">{transaction.notes}</p>
+                      <p className="text-sm italic text-muted-foreground">{transaction.notes}</p>
                     )}
                   </div>
-                  <div className="flex flex-col items-start gap-3 md:items-end">
-                    <div className="space-y-1 text-left md:text-right">
-                      <p className={`font-semibold ${transaction.category?.type === 'income' ? 'text-success' : transaction.category?.type === 'savings' ? '' : 'text-danger'}`}>
+                  <div className="flex shrink-0 flex-col items-start gap-3 md:items-end">
+                    <div className="space-y-0.5 text-left md:text-right">
+                      <p className={`text-base font-semibold tabular-nums ${transaction.category?.type === 'income' ? 'text-success' : transaction.category?.type === 'savings' ? 'text-primary' : 'text-danger'}`}>
                         {formatMoney(transaction.amount, transaction.currency)}
                       </p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm tabular-nums text-muted-foreground">
                         {formatMoney(transaction.amount_crc, 'CRC')}
                       </p>
                     </div>

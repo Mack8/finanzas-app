@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Wallet } from 'lucide-react'
+import { Wallet, ShieldCheck, LineChart, PiggyBank } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { loginSchema, type LoginFormValues } from '@/lib/validations'
 import { Button } from '@/components/ui/button'
@@ -43,19 +43,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Form column */}
+    <div className="flex min-h-screen">
       <div className="flex flex-1 flex-col items-center justify-center bg-background px-6 py-12 lg:px-16">
         <div className="w-full max-w-sm">
-          {/* Logo */}
           <div className="mb-8 flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <Wallet className="h-5 w-5 text-white" />
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary shadow-sm">
+              <Wallet className="size-5 text-primary-foreground" />
             </div>
-            <span className="text-lg font-semibold text-foreground">Finanzas</span>
+            <div className="leading-tight">
+              <span className="block text-lg font-semibold text-foreground">Finanzas</span>
+              <span className="block text-xs text-muted-foreground">Control personal</span>
+            </div>
           </div>
 
-          <h1 className="mb-1 text-2xl font-bold text-foreground">Iniciar sesión</h1>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight text-foreground">Iniciar sesión</h1>
           <p className="mb-8 text-sm text-muted-foreground">
             Ingresá tus credenciales para continuar
           </p>
@@ -67,10 +68,11 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 placeholder="vos@ejemplo.com"
+                autoComplete="email"
                 {...register('email')}
               />
               {errors.email && (
-                <p className="text-xs text-danger">{errors.email.message}</p>
+                <p className="text-xs text-danger" role="alert">{errors.email.message}</p>
               )}
             </div>
 
@@ -79,18 +81,21 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
+                autoComplete="current-password"
                 {...register('password')}
               />
               {errors.password && (
-                <p className="text-xs text-danger">{errors.password.message}</p>
+                <p className="text-xs text-danger" role="alert">{errors.password.message}</p>
               )}
             </div>
 
             {serverError && (
-              <p className="text-sm text-danger">{serverError}</p>
+              <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+                {serverError}
+              </p>
             )}
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
               {isSubmitting ? 'Iniciando sesión...' : 'Iniciar sesión'}
             </Button>
           </form>
@@ -104,18 +109,31 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Decoration column */}
-      <div className="hidden lg:flex flex-1 flex-col items-center justify-center bg-gradient-to-br from-[#3c50e0] to-[#0ABEF9] px-12 text-white">
-        <div className="max-w-md text-center">
-          <div className="mb-6 flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
-              <Wallet className="h-8 w-8 text-white" />
-            </div>
+      <div className="relative hidden flex-1 overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 px-12 text-white lg:flex lg:flex-col lg:items-center lg:justify-center">
+        <div className="pointer-events-none absolute -right-16 -top-16 size-64 rounded-full bg-white/10 blur-2xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-10 size-72 rounded-full bg-cyan-300/20 blur-3xl" />
+
+        <div className="relative z-10 max-w-md">
+          <div className="mb-8 flex size-16 items-center justify-center rounded-2xl border border-white/20 bg-white/15 shadow-lg backdrop-blur-sm">
+            <Wallet className="size-8 text-white" />
           </div>
-          <h2 className="mb-3 text-3xl font-bold">Control total de tus finanzas</h2>
-          <p className="text-white/80 text-base leading-relaxed">
-            Registrá gastos, gestioná ahorros y seguí tus deudas en un solo lugar.
+          <h2 className="mb-3 text-3xl font-bold tracking-tight">
+            Control total de tus finanzas
+          </h2>
+          <p className="mb-8 text-base leading-relaxed text-white/85">
+            Registrá gastos, gestioná ahorros y seguí tus deudas en un solo lugar, con tipo de cambio BCCR.
           </p>
+          <ul className="space-y-3 text-sm text-white/90">
+            <li className="flex items-center gap-3 rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur-sm">
+              <LineChart className="size-4 shrink-0" /> Dashboard con KPIs y tendencias
+            </li>
+            <li className="flex items-center gap-3 rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur-sm">
+              <PiggyBank className="size-4 shrink-0" /> Metas de ahorro y aportes
+            </li>
+            <li className="flex items-center gap-3 rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur-sm">
+              <ShieldCheck className="size-4 shrink-0" /> Dual currency CRC / USD
+            </li>
+          </ul>
         </div>
       </div>
     </div>

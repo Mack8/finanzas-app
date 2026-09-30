@@ -99,6 +99,8 @@ export interface Database {
           transaction_type: TransactionType
           tags: string[]
           notes: string | null
+          debt_id: string | null
+          savings_contribution_id: string | null
           created_at: string
           updated_at: string
         }
@@ -116,6 +118,8 @@ export interface Database {
           transaction_type?: TransactionType
           tags?: string[]
           notes?: string | null
+          debt_id?: string | null
+          savings_contribution_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -196,6 +200,7 @@ export interface Database {
           paid_installments: number
           start_date: string
           payment_account_id: string | null
+          notes: string | null
           is_active: boolean
           created_at: string
         }
@@ -210,6 +215,7 @@ export interface Database {
           paid_installments?: number
           start_date: string
           payment_account_id?: string | null
+          notes?: string | null
           is_active?: boolean
           created_at?: string
         }
@@ -244,6 +250,27 @@ export interface Database {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      apply_savings_contribution: {
+        Args: {
+          p_fund_id: string
+          p_user_id: string
+          p_date: string
+          p_amount: number
+          p_currency: string
+          p_amount_crc: number
+          p_exchange_rate_id: string | null
+          p_notes: string | null
+        }
+        Returns: Database['public']['Tables']['savings_contributions']['Row']
+      }
+      revert_savings_contribution: {
+        Args: {
+          p_contribution_id: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+    }
   }
 }
