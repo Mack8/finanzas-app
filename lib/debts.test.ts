@@ -14,6 +14,7 @@ const baseDebt: Debt = {
   start_date: '2024-01-15',
   payment_account_id: null,
   is_active: true,
+  notes: null,
   created_at: '2024-01-01T00:00:00Z',
 }
 
