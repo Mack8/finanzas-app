@@ -101,6 +101,8 @@ export interface Database {
           notes: string | null
           debt_id: string | null
           savings_contribution_id: string | null
+          source: string | null
+          external_ref: string | null
           created_at: string
           updated_at: string
         }
@@ -120,6 +122,8 @@ export interface Database {
           notes?: string | null
           debt_id?: string | null
           savings_contribution_id?: string | null
+          source?: string | null
+          external_ref?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -246,6 +250,50 @@ export interface Database {
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['income_config']['Insert']>
+        Relationships: []
+      }
+      merchant_rules: {
+        Row: {
+          id: string
+          user_id: string
+          merchant_key: string
+          category_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          merchant_key: string
+          category_id: string
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['merchant_rules']['Insert']>
+        Relationships: []
+      }
+      email_ingest_log: {
+        Row: {
+          id: string
+          user_id: string
+          message_id: string
+          bank: string | null
+          status: 'created' | 'duplicate' | 'unparsed' | 'error'
+          subject: string | null
+          detail: string | null
+          transaction_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          message_id: string
+          bank?: string | null
+          status: 'created' | 'duplicate' | 'unparsed' | 'error'
+          subject?: string | null
+          detail?: string | null
+          transaction_id?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['email_ingest_log']['Insert']>
         Relationships: []
       }
     }
