@@ -1,0 +1,27 @@
+# Base local de pruebas para el worker: Postgres + PostgREST (la API que usa supabase-js).
+# Puertos fuera de los habituales: Postgres 54329, API 54330. Solo escucha en 127.0.0.1.
+name: finanzas-local-db
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '127.0.0.1:54329:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  api:
+    image: postgrest/postgrest:latest
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://authenticator:authpass@db:5432/postgres
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: local-test-secret-local-test-secret-32chars
+    ports:
+      - '127.0.0.1:54330:3000'

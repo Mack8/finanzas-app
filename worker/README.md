@@ -34,6 +34,20 @@ npm run worker:eval         # mide el modelo con comercios de ejemplo
 - `token.json`: sesión de Microsoft (permisos 600). Si vence: `npm run worker:login`.
 - `cursor.json`: hasta dónde se leyó. Se puede borrar: se relee una ventana reciente y el registro evita duplicados.
 
+## Probar contra una base local
+
+`worker/local-db/` levanta Postgres + PostgREST (la API que usa `supabase-js`) en Docker, con las migraciones 001 a 005 y datos de prueba. Solo escucha en `127.0.0.1` (Postgres 54329, API 54330). No toca la base real.
+
+```bash
+docker compose -f worker/local-db/docker-compose.yml up -d db
+docker compose -f worker/local-db/docker-compose.yml exec -T db psql -U postgres -q < worker/local-db/bootstrap.sql
+for f in supabase/migrations/00*.sql; do docker compose -f worker/local-db/docker-compose.yml exec -T db psql -U postgres -q < "$f"; done
+docker compose -f worker/local-db/docker-compose.yml exec -T db psql -U postgres -q < worker/local-db/seed.sql
+docker compose -f worker/local-db/docker-compose.yml up -d api
+npm run worker:smoke      # correos simulados + Ollama real + capas reales de Supabase + RLS
+docker compose -f worker/local-db/docker-compose.yml down -v   # borra todo
+```
+
 ## Si algo no se leyó
 
 Los correos que no se reconocen quedan en la tabla `email_ingest_log` con estado `unparsed` o `error` y se ven en Configuración de la app. Para reprocesar los `unparsed` tras agregar un parser: borrar esas filas del registro.
