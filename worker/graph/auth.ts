@@ -53,19 +53,30 @@ export function fileTokenStore(path: string): TokenStore {
   }
 }
 
+/** Campos de las respuestas de Microsoft que se usan; el resto se ignora. */
+type OAuthResponse = {
+  error?: string
+  access_token?: string
+  refresh_token?: string
+  expires_in?: number | string
+  device_code?: string
+  message?: string
+  interval?: number | string
+}
+
 async function postForm(io: AuthIO, endpoint: 'devicecode' | 'token', params: Record<string, string>) {
   const res = await io.fetchFn(`${AUTHORITY}/${endpoint}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams(params),
   })
-  return { ok: res.ok, json: (await res.json()) as Record<string, any> }
+  return { ok: res.ok, json: (await res.json()) as OAuthResponse }
 }
 
-function toCache(json: Record<string, any>, io: AuthIO, previousRefresh?: string): TokenCache {
+function toCache(json: OAuthResponse, io: AuthIO, previousRefresh?: string): TokenCache {
   return {
-    accessToken: json.access_token,
-    refreshToken: json.refresh_token ?? previousRefresh,
+    accessToken: json.access_token as string,
+    refreshToken: (json.refresh_token ?? previousRefresh) as string,
     expiresAt: io.now() + Number(json.expires_in) * 1000,
   }
 }
