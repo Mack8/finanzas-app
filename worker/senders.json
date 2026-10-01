@@ -1,5 +1,5 @@
 {
-  "bac": [],
-  "promerica": [],
-  "davibank": []
+  "bac": ["notificacionbac@baccredomatic.cr"],
+  "promerica": ["info@promerica.fi.cr"],
+  "davibank": ["alertas@davibank.cr"]
 }
