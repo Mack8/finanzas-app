@@ -50,6 +50,11 @@ describe('parseBac', () => {
     expect(r).toEqual({ ok: false, reason: 'BAC: monto no reconocido (CRC 3.730,00)' })
   })
 
+  it('acepta un espacio antes de la coma de la hora (variante real del 20 al 24 de septiembre)', () => {
+    const r = parseBac(fixture.replace('Sep 29, 2026, 19:47', 'Sep 20, 2026 , 11:31'))
+    expect(r).toMatchObject({ ok: true, purchase: { occurredAt: '2026-09-20T11:31:00-06:00' } })
+  })
+
   it('falla si la fecha no se reconoce', () => {
     const r = parseBac(fixture.replace('Sep 29, 2026, 19:47', '29/09/2026'))
     expect(r.ok).toBe(false)

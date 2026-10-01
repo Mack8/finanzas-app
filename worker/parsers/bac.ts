@@ -21,7 +21,7 @@ export function parseBac(text: string): ParseResult {
   })
   if (absent.length > 0) return fail(`BAC: faltan campos: ${absent.join(', ')}`)
 
-  const date = dateRaw!.match(/^([A-Za-z]{3,4})\.? (\d{1,2}), (\d{4}), (\d{1,2}):(\d{2})$/)
+  const date = dateRaw!.match(/^([A-Za-z]{3,4})\.? (\d{1,2}), (\d{4}) ?, (\d{1,2}):(\d{2})$/)
   const month = date ? monthFromName(date[1]) : null
   const occurredAt = date && month
     ? toCostaRicaIso(Number(date[3]), month, Number(date[2]), Number(date[4]), Number(date[5]))

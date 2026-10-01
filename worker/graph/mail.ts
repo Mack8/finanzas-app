@@ -1,4 +1,5 @@
 import { BANKS, type Bank, type MailMessage } from '../types'
+import { htmlToText } from './html'
 
 export type SenderMap = Record<Bank, string[]>
 export type BankMessage = MailMessage & { bank: Bank }
@@ -8,7 +9,7 @@ type GraphMessage = {
   subject?: string
   receivedDateTime: string
   from?: { emailAddress?: { address?: string } }
-  body?: { content?: string }
+  body?: { contentType?: string; content?: string }
   internetMessageHeaders?: { name: string; value: string }[]
 }
 
@@ -34,6 +35,12 @@ export function buildMessagesUrl(since: string, senders: SenderMap): string {
 
 function bankForSender(address: string, senders: SenderMap): Bank | null {
   return BANKS.find(bank => (senders[bank] ?? []).some(a => a.toLowerCase() === address)) ?? null
+}
+
+function bodyTextOf(body: GraphMessage['body']): string {
+  const content = body?.content ?? ''
+  const isHtml = body?.contentType?.toLowerCase() === 'html' || /^\s*<[a-z!]/i.test(content)
+  return isHtml ? htmlToText(content) : content
 }
 
 function authPassOf(headers: GraphMessage['internetMessageHeaders']): boolean | null {
@@ -68,7 +75,7 @@ export async function fetchBankMessages(
         receivedAt: m.receivedDateTime,
         from,
         subject: m.subject ?? '',
-        bodyText: m.body?.content ?? '',
+        bodyText: bodyTextOf(m.body),
         authPass: authPassOf(m.internetMessageHeaders),
       })
     }

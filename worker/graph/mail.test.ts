@@ -60,6 +60,20 @@ describe('fetchBankMessages', () => {
     }])
   })
 
+  it('convierte a texto un cuerpo HTML (aunque se pida texto, Graph puede devolver HTML)', async () => {
+    const html = graphMessage({
+      body: { contentType: 'html', content: '<html><head><style>td{}</style></head><body><table><tr><td>Comercio:</td><td>DLC* DIDI FOODS</td></tr></table></body></html>' },
+    })
+    const out = await fetchBankMessages('T', 'x', senders, vi.fn().mockResolvedValue(page([html])))
+    expect(out[0].bodyText).toBe('Comercio:\tDLC* DIDI FOODS')
+  })
+
+  it('detecta HTML por el contenido si Graph no informa el tipo', async () => {
+    const html = graphMessage({ body: { content: '<p>Hola</p>' } })
+    const out = await fetchBankMessages('T', 'x', senders, vi.fn().mockResolvedValue(page([html])))
+    expect(out[0].bodyText).toBe('Hola')
+  })
+
   it('sigue la paginación', async () => {
     const fetchFn = vi.fn()
       .mockResolvedValueOnce(page([graphMessage({ id: 'm1' })], 'https://graph.microsoft.com/next'))
