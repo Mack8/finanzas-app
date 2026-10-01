@@ -31,6 +31,7 @@ type RecentTransaction = Pick<
   | 'transaction_type'
   | 'notes'
   | 'payment_account_id'
+  | 'source'
 > & {
   category: CategoryOption | null
 }
@@ -78,7 +79,7 @@ export default async function TransactionsPage({
   let txQuery = supabase
     .from('transactions')
     .select(`
-      id, date, description, amount, currency, amount_crc, transaction_type, notes, payment_account_id,
+      id, date, description, amount, currency, amount_crc, transaction_type, notes, payment_account_id, source,
       category:categories ( id, name, type, color )
     `)
     .order('date', { ascending: false })
@@ -211,6 +212,9 @@ export default async function TransactionsPage({
                       <span className="badge-muted">
                         {transactionTypeLabels[transaction.transaction_type]}
                       </span>
+                      {transaction.source === 'email' && (
+                        <span className="badge-muted">Automático</span>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
                       <span>{formatDate(transaction.date)}</span>

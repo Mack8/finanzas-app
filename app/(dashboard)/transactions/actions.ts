@@ -2,6 +2,7 @@
 
 import { getLatestExchangeRate } from '@/lib/bccr/exchange-rate'
 import { assertPaymentAccountOwnership } from '@/lib/categories-resolve'
+import { ruleToLearn } from '@/lib/merchant-rules'
 import { revalidateMoneyPaths } from '@/lib/revalidate'
 import { createClient } from '@/lib/supabase/server'
 import { resolveAmountCRC, type ExchangeRateSnapshot } from '@/lib/transactions'
@@ -209,6 +210,13 @@ export async function updateTransactionAction(
     }
   }
 
+  const { data: existing } = await supabase
+    .from('transactions')
+    .select('source, description, category_id')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
   const { data: updatedRows, error: updateError } = await supabase
     .from('transactions')
     .update({
@@ -230,6 +238,14 @@ export async function updateTransactionAction(
 
   if (updateError || !updatedRows?.length) {
     return { status: 'error', message: 'No se pudo actualizar la transacción. Intentá de nuevo.' }
+  }
+
+  const rule = existing ? ruleToLearn(existing, values.categoryId) : null
+  if (rule) {
+    const { error: ruleError } = await supabase
+      .from('merchant_rules')
+      .upsert({ user_id: user.id, ...rule }, { onConflict: 'user_id,merchant_key' })
+    if (ruleError) console.error('No se pudo guardar la regla de comercio:', ruleError.message)
   }
 
   revalidateMoneyPaths()

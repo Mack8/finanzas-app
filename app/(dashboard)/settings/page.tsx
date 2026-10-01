@@ -4,6 +4,7 @@ import { CreateCategoryForm } from '@/components/settings/CreateCategoryForm'
 import { IncomeConfigForm } from '@/components/settings/IncomeConfigForm'
 import { DeleteCategoryButton } from '@/components/settings/DeleteCategoryButton'
 import { EditCategoryDialog } from '@/components/settings/EditCategoryDialog'
+import { IngestIssues, type IngestIssue } from '@/components/settings/IngestIssues'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { KpiCard } from '@/components/layout/KpiCard'
 import { Button } from '@/components/ui/button'
@@ -55,6 +56,15 @@ export default async function SettingsPage() {
   ])
 
   const categories = (categoriesData ?? []) as CategorySummary[]
+
+  const { data: issuesData } = await supabase
+    .from('email_ingest_log')
+    .select('id, created_at, bank, status, subject, detail')
+    .eq('user_id', user.id)
+    .in('status', ['unparsed', 'error'])
+    .order('created_at', { ascending: false })
+    .limit(20)
+  const ingestIssues = (issuesData ?? []) as IngestIssue[]
 
   const txCountByCategory = (txCounts ?? []).reduce<Record<string, number>>((acc, tx) => {
     if (tx.category_id) acc[tx.category_id] = (acc[tx.category_id] ?? 0) + 1
@@ -202,6 +212,8 @@ export default async function SettingsPage() {
         </div>
         <IncomeConfigForm currentConfig={currentIncomeConfig} />
       </div>
+
+      <IngestIssues issues={ingestIssues} />
     </div>
   )
 }
