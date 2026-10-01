@@ -1,0 +1,17 @@
+[
+  { "merchant": "DLC* DIDI FOODS", "hint": null, "expected": "Alimentación" },
+  { "merchant": "TACO BELL CITY MALL ALAJUELA CRI", "hint": "RESTAURANTS", "expected": "Alimentación" },
+  { "merchant": "ALM EL REY 8 ALAJUELA ALAJUELA", "hint": null, "expected": "Alimentación" },
+  { "merchant": "UBER *TRIP", "hint": null, "expected": "Transporte" },
+  { "merchant": "NETFLIX.COM", "hint": null, "expected": "Suscripciones" },
+  { "merchant": "FARMACIA FISCHEL ALAJUELA", "hint": null, "expected": "Salud" },
+  { "merchant": "SPOTIFY P2A3B", "hint": null, "expected": "Suscripciones" },
+  { "merchant": "CINEPOLIS TERRAZA ESCAZU", "hint": null, "expected": "Ocio" },
+  { "merchant": "GASOLINERA DELTA ALAJUELA", "hint": null, "expected": "Transporte" },
+  { "merchant": "AMAZON MKTPLACE PMTS", "hint": null, "expected": "Compras" },
+  { "merchant": "ICE ELECTRICIDAD PAGO", "hint": null, "expected": "Servicios" },
+  { "merchant": "XQZ 88 TRD SRL", "hint": null, "expected": "Sin categorizar" },
+  { "merchant": "PAYPAL *JUAN", "hint": null, "expected": "Sin categorizar" },
+  { "merchant": "AUTOMERCADO ESCAZU", "hint": null, "expected": "Alimentación" },
+  { "merchant": "CLINICA BIBLICA SAN JOSE", "hint": null, "expected": "Salud" }
+]
