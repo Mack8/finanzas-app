@@ -14,6 +14,7 @@
     "supabase:reset": "npx supabase db reset --local",
     "supabase:status": "npx supabase status",
     "supabase:env": "tsx scripts/sync-local-supabase-env.ts",
+    "supabase:verify": "tsx scripts/verify-local-supabase.ts",
     "dev:local": "npm run supabase:start && npm run supabase:env && next dev",
     "worker": "tsx worker/main.ts",
     "worker:dry": "tsx worker/main.ts --dry-run",
