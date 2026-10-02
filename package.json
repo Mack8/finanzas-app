@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest",
     "test:run": "vitest run",
-    "supabase:start": "npx supabase start",
+    "supabase:start": "npx supabase start >/dev/null && echo 'Supabase local iniciado.'",
     "supabase:stop": "npx supabase stop",
     "supabase:reset": "npx supabase db reset --local",
     "supabase:status": "npx supabase status",

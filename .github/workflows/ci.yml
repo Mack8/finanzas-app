@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate local Supabase stack
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start local Supabase
+        run: npm run supabase:start
+
+      - name: Rebuild local database
+        run: npm run supabase:reset
+
+      - name: Sync local environment
+        run: npm run supabase:env
+
+      - name: Verify local Auth and RLS
+        run: npm run supabase:verify
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm run test:run
+
+      - name: Build
+        run: npm run build
+
+      - name: Print local Supabase diagnostics
+        if: failure()
+        run: |
+          npx supabase status -o env 2>&1 | sed -E 's/=.*$/=[redacted]/' || true
+          docker ps -a
+          for container in $(docker ps -aq --filter 'name=supabase_'); do
+            docker logs "$container" || true
+          done
+
+      - name: Stop local Supabase
+        if: always()
+        run: npm run supabase:stop

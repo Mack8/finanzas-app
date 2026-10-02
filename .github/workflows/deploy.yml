@@ -1,0 +1,14 @@
+name: CD pending hosting decision
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  pending-hosting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain deployment status
+        run: |
+          echo "CD is intentionally disabled. Select a hosting provider and configure its environment outside Git before enabling deployments."

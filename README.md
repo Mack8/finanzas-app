@@ -17,30 +17,44 @@ App personal de control de finanzas: ingresos, gastos, tarjetas, deudas y fondos
 
 Las transacciones (`transactions`) son la fuente de verdad de lo que realmente entró o salió. Deudas, fondos de ahorro e `income_config` son planificación: cuando un evento se materializa se crea o enlaza una transacción. Detalle, KPIs y reglas en [`docs/money-model.md`](docs/money-model.md).
 
-## Empezar
+## Empezar en local
 
-Requisitos: Node 20+, un proyecto de Supabase.
+Requisitos: Node 20+, Docker Desktop o Docker Engine con Compose. No necesitás un proyecto remoto de Supabase para desarrollar o ejecutar las pruebas.
 
 ```bash
-npm install
-cp .env.example .env.local   # completar las variables
-npm run dev                  # http://localhost:3000
+npm ci
+npm run supabase:start
+npm run supabase:env
+npm run supabase:reset
+npm run dev:local
 ```
 
-### Variables de entorno
+La app queda en http://localhost:3000. El reset aplica las migraciones `001` a `005` y crea únicamente datos sintéticos, incluido el usuario `dev@finanzas.local` con contraseña `finanzas-local-dev`.
 
-| Variable | Uso |
+### Ciclo diario y servicios locales
+
+| Comando o servicio | Uso |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clave pública (anon) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Clave de servicio, solo servidor. Nunca exponerla al cliente |
-| `BCCR_INDICATOR_EMAIL` / `BCCR_INDICATOR_TOKEN` | Credenciales del servicio de indicadores del BCCR (tipo de cambio) |
+| `npm run dev:local` | Inicia Supabase, sincroniza `.env.local` y abre Next.js. |
+| `npm run supabase:reset` | Reconstruye la base local desde migraciones y seed sintético. |
+| `npm run supabase:verify` | Comprueba login local, lectura autenticada y aislamiento RLS. |
+| `npm run supabase:stop` | Detiene los contenedores locales. |
+| API | http://127.0.0.1:54321 |
+| Postgres | `127.0.0.1:54322` |
+| Studio | http://127.0.0.1:54323 |
+| Inbucket (correos locales) | http://127.0.0.1:54324 |
 
-`.env*` está en `.gitignore`: no se commitean secretos.
+El registro en `/register` usa Auth local; sus emails de confirmación sólo aparecen en Inbucket. Para cambiar las variables administradas, ejecutá `npm run supabase:env -- --replace` de forma explícita. Si conservás una configuración remota, mantenela como `.env.remote.local`: está ignorada por Git.
+
+### Variables de entorno y entornos remotos
+
+`npm run supabase:env` genera en `.env.local` las URL y claves del stack local. No copies credenciales remotas a `.env.example` ni a Git. `BCCR_INDICATOR_EMAIL`, `BCCR_INDICATOR_TOKEN` y las variables del worker son opcionales para el flujo local y siguen documentadas en `.env.example`.
+
+Staging y producción usarán sus propias variables configuradas directamente en el proveedor elegido. Actualmente no existe CD: el workflow manual de GitHub lo deja explícito hasta seleccionar hosting. La CI ejecuta una instancia efímera local de Supabase y nunca inicia sesión, enlaza ni modifica proyectos remotos.
 
 ### Base de datos
 
-Las migraciones están en `supabase/migrations/` y se aplican en orden numérico (`001` … `004`). `supabase/seed.sql` contiene datos de ejemplo. Al registrarse un usuario, un trigger crea sus categorías por defecto.
+Las migraciones están en `supabase/migrations/` y se aplican en orden numérico (`001` … `005`). `supabase/seed.sql` contiene exclusivamente datos de desarrollo repetibles. Al registrarse un usuario, un trigger crea sus categorías por defecto.
 
 ## Scripts
 
@@ -64,9 +78,11 @@ docs/           Modelo de dinero y specs de diseño
 types/          Tipos de base de datos y de dominio
 ```
 
-## En camino: ingesta automática desde el correo
+## Ingesta automática desde el correo
 
-Un worker local leerá las alertas de compra de BAC, Promerica y DAVIbank desde el buzón, las parseará con reglas por banco, sugerirá la categoría con un modelo local (Ollama) y creará la transacción en el ledger sin salir de la máquina del usuario. El diseño vive en `docs/superpowers/specs/`.
+Un worker local lee las alertas de compra de BAC, Promerica y DAVIbank desde el buzón, las parsea con reglas por banco, sugiere la categoría con un modelo local (Ollama) y crea la transacción en el ledger sin salir de la máquina del usuario. El diseño vive en `docs/superpowers/specs/`.
+
+`worker/local-db/` se conserva como fixture especializado para los smoke tests del worker (Postgres + PostgREST, puertos 54329/54330). No reemplaza el stack completo de Supabase local descrito arriba; su guía está en [`worker/README.md`](worker/README.md).
 
 ## Flujo de trabajo
 
