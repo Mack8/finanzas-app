@@ -89,6 +89,49 @@ export type MonthPace = {
   dailyBurn: number
 }
 
+export type FinancialPositionInput = {
+  confirmedCRC: number
+  pendingCommitmentsCRC: number
+  futureIncomeCRC: number | null
+  horizonDays: number
+  projectedExpensesCRC: number
+}
+
+export type FinancialPosition = {
+  confirmedCRC: number
+  pendingCommitmentsCRC: number
+  safeCRC: number
+  projectedCRC: number | null
+  dailySafeCRC: number
+  horizonDays: number
+  state: 'stable' | 'attention' | 'risk' | 'incomplete'
+}
+
+export function computeFinancialPosition(input: FinancialPositionInput): FinancialPosition {
+  const horizonDays = Math.max(1, input.horizonDays)
+  const safeCRC = roundMoney(input.confirmedCRC - input.pendingCommitmentsCRC)
+  const projectedCRC = input.futureIncomeCRC === null
+    ? null
+    : roundMoney(safeCRC + input.futureIncomeCRC)
+  const state = safeCRC < 0
+    ? 'risk'
+    : input.projectedExpensesCRC > safeCRC
+      ? 'attention'
+      : input.futureIncomeCRC === null
+        ? 'incomplete'
+        : 'stable'
+
+  return {
+    confirmedCRC: input.confirmedCRC,
+    pendingCommitmentsCRC: input.pendingCommitmentsCRC,
+    safeCRC,
+    projectedCRC,
+    dailySafeCRC: roundMoney(safeCRC / horizonDays),
+    horizonDays,
+    state,
+  }
+}
+
 export type RecentTransactionItem = {
   id: string
   date: string

@@ -7,6 +7,7 @@ import {
   computeFinancialRates,
   computeMonthPace,
   computeExpenseSplit,
+  computeFinancialPosition,
 } from './dashboard'
 
 describe('computeTotals', () => {
@@ -153,5 +154,19 @@ describe('computeExpenseSplit', () => {
     ])
     expect(split.fixedExpenses).toBe(100)
     expect(split.variableExpenses).toBe(40)
+  })
+})
+
+describe('computeFinancialPosition', () => {
+  it('separates safe and projected money without double-counting commitments', () => {
+    expect(computeFinancialPosition({ confirmedCRC: 200000, pendingCommitmentsCRC: 50000, futureIncomeCRC: 100000, horizonDays: 10, projectedExpensesCRC: 0 })).toMatchObject({ safeCRC: 150000, projectedCRC: 250000, dailySafeCRC: 15000, state: 'stable' })
+  })
+
+  it('marks a negative safe margin as risk', () => {
+    expect(computeFinancialPosition({ confirmedCRC: 20000, pendingCommitmentsCRC: 50000, futureIncomeCRC: null, horizonDays: 10, projectedExpensesCRC: 0 }).state).toBe('risk')
+  })
+
+  it('does not invent a projected amount without configured future income', () => {
+    expect(computeFinancialPosition({ confirmedCRC: 100000, pendingCommitmentsCRC: 0, futureIncomeCRC: null, horizonDays: 10, projectedExpensesCRC: 0 }).projectedCRC).toBeNull()
   })
 })
