@@ -19,30 +19,35 @@ insert into auth.users (
     '$2a$10$KR/zMSSqdVYggbrXR0EnnuLi4/wJgtIXKvGFkU3chm1/OngV13X2e', now(),
     '', '', '', '', '', '', '',
     '{"provider":"email","providers":["email"]}', '{}', now(), now()
-  );
+  )
+on conflict (id) do nothing;
 
 insert into auth.identities (id, provider_id, user_id, identity_data, provider, created_at, updated_at) values
   ('11111111-aaaa-aaaa-aaaa-111111111111', 'dev@finanzas.local', '11111111-1111-1111-1111-111111111111', '{"sub":"11111111-1111-1111-1111-111111111111","email":"dev@finanzas.local"}', 'email', now(), now()),
-  ('22222222-aaaa-aaaa-aaaa-222222222222', 'other@finanzas.local', '22222222-2222-2222-2222-222222222222', '{"sub":"22222222-2222-2222-2222-222222222222","email":"other@finanzas.local"}', 'email', now(), now());
+  ('22222222-aaaa-aaaa-aaaa-222222222222', 'other@finanzas.local', '22222222-2222-2222-2222-222222222222', '{"sub":"22222222-2222-2222-2222-222222222222","email":"other@finanzas.local"}', 'email', now(), now())
+on conflict (id) do nothing;
 
 insert into public.exchange_rates (id, date, usd_to_crc, source) values
-  ('33333333-3333-3333-3333-333333333333', current_date, 520.00, 'seed');
+  ('33333333-3333-3333-3333-333333333333', date '2026-01-15', 520.00, 'seed')
+on conflict (id) do nothing;
 
 insert into public.payment_accounts (id, user_id, name, type, last_four, bank_name) values
-  ('44444444-4444-4444-4444-444444444444', '11111111-1111-1111-1111-111111111111', 'Tarjeta local', 'credit_card', '1234', 'Banco de prueba');
+  ('44444444-4444-4444-4444-444444444444', '11111111-1111-1111-1111-111111111111', 'Tarjeta local', 'credit_card', '1234', 'Banco de prueba')
+on conflict (id) do nothing;
 
 insert into public.transactions (
   id, user_id, date, description, amount, currency, amount_crc, exchange_rate_id, category_id, payment_account_id
 ) values
   (
-    '55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111', current_date,
+    '55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111', date '2026-01-15',
     'Compra de ejemplo', 12500.00, 'CRC', 12500.00, null,
     (select id from public.categories where user_id = '11111111-1111-1111-1111-111111111111' and name = 'Alimentación'),
     '44444444-4444-4444-4444-444444444444'
   ),
   (
-    '66666666-6666-6666-6666-666666666666', '22222222-2222-2222-2222-222222222222', current_date,
+    '66666666-6666-6666-6666-666666666666', '22222222-2222-2222-2222-222222222222', date '2026-01-15',
     'Transacción ajena', 99.00, 'USD', 51480.00, '33333333-3333-3333-3333-333333333333',
     (select id from public.categories where user_id = '22222222-2222-2222-2222-222222222222' and name = 'Compras'),
     null
-  );
+  )
+on conflict (id) do nothing;
