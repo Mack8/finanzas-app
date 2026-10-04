@@ -100,6 +100,8 @@ export interface Database {
           tags: string[]
           notes: string | null
           debt_id: string | null
+          recurring_obligation_id: string | null
+          scheduled_due_date: string | null
           savings_contribution_id: string | null
           source: string | null
           external_ref: string | null
@@ -121,6 +123,8 @@ export interface Database {
           tags?: string[]
           notes?: string | null
           debt_id?: string | null
+          recurring_obligation_id?: string | null
+          scheduled_due_date?: string | null
           savings_contribution_id?: string | null
           source?: string | null
           external_ref?: string | null
@@ -203,6 +207,8 @@ export interface Database {
           total_installments: number
           paid_installments: number
           start_date: string
+          next_due_date: string | null
+          due_day: number | null
           payment_account_id: string | null
           notes: string | null
           is_active: boolean
@@ -218,12 +224,54 @@ export interface Database {
           total_installments: number
           paid_installments?: number
           start_date: string
+          next_due_date?: string | null
+          due_day?: number | null
           payment_account_id?: string | null
           notes?: string | null
           is_active?: boolean
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['debts']['Insert']>
+        Relationships: []
+      }
+      recurring_obligations: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          notes: string | null
+          expected_amount: number
+          currency: CurrencyCode
+          expected_amount_crc: number
+          category_id: string
+          transaction_type: TransactionType
+          payment_account_id: string | null
+          next_due_date: string
+          due_day: number
+          interval_months: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          notes?: string | null
+          expected_amount: number
+          currency?: CurrencyCode
+          expected_amount_crc: number
+          category_id: string
+          transaction_type?: TransactionType
+          payment_account_id?: string | null
+          next_due_date: string
+          due_day: number
+          interval_months?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['recurring_obligations']['Insert']>
         Relationships: []
       }
       income_config: {
@@ -299,6 +347,34 @@ export interface Database {
     }
     Views: Record<string, never>
     Functions: {
+      pay_debt_installment: {
+        Args: {
+          p_debt_id: string
+          p_scheduled_due_date: string
+          p_paid_on: string
+          p_amount: number
+          p_amount_crc: number
+          p_currency: string
+          p_exchange_rate_id: string | null
+          p_category_id: string
+          p_payment_account_id: string | null
+        }
+        Returns: string
+      }
+      pay_recurring_obligation: {
+        Args: {
+          p_obligation_id: string
+          p_scheduled_due_date: string
+          p_paid_on: string
+          p_amount: number
+          p_amount_crc: number
+          p_currency: string
+          p_exchange_rate_id: string | null
+          p_category_id: string
+          p_payment_account_id: string | null
+        }
+        Returns: string
+      }
       apply_savings_contribution: {
         Args: {
           p_fund_id: string

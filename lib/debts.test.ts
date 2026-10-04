@@ -12,6 +12,8 @@ const baseDebt: Debt = {
   total_installments: 25,
   paid_installments: 5,
   start_date: '2024-01-15',
+  next_due_date: null,
+  due_day: null,
   payment_account_id: null,
   is_active: true,
   notes: null,
