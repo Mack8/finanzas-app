@@ -21,7 +21,7 @@ Las transacciones (`transactions`) son la fuente de verdad de lo que realmente e
 
 El dashboard presenta primero el margen seguro: saldo registrado del mes menos cuotas y aportes pendientes. Luego muestra una acción prioritaria, el ritmo de gasto, la categoría que más aporta al gasto y la salud de ahorro y deudas. El horizonte es fin de mes, incluido hoy.
 
-El monto proyectado agrega únicamente el ingreso mensual configurado aún no registrado (mínimo cero); es una estimación sin fecha de cobro y no dinero disponible. Si faltan ingresos configurados o movimientos, se muestra el paso para completar los datos. Los gráficos y el histórico se consultan en Reportes. Calm Ledger usa tonos petróleo, menta, ámbar y coral, con etiquetas de estado y una variante clara seleccionable.
+El monto proyectado agrega únicamente el ingreso mensual configurado aún no registrado (mínimo cero); es una estimación sin fecha de cobro y no dinero disponible. Si faltan ingresos configurados o movimientos, se muestra el paso para completar los datos. Los gráficos y el histórico se consultan en Reportes. Calm Ledger usa una base gris verdosa y acentos salvia, ámbar y coral, con etiquetas de estado y una variante clara seleccionable.
 
 ## Empezar en local
 
