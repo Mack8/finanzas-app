@@ -1,7 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CategoryType, CurrencyCode, TransactionType } from '@/types/database'
 import type { Database } from '@/types/database'
+import type { PaymentReminder } from '@/types/domain'
 import { roundMoney } from '@/lib/transactions'
+import { classifyDueDate } from '@/lib/payment-schedule'
 import { computeMonthlyIncomeCRC } from '@/lib/income'
 import { buildMonthlyTotals, groupExpensesByCategory } from '@/lib/reports'
 import type { MonthlyTotalsRow, CategoryExpense } from '@/lib/reports'
@@ -70,8 +72,10 @@ export type CashFlowBreakdown = {
   reimbursementsCRC: number
   /** Savings txs from ledger */
   savingsCRC: number
-  /** Active debt installments still unpaid this month (no linked tx) */
+  /** Active debts still reserved this month (no linked occurrence transaction) */
   unpaidDebtsMonthlyCRC: number
+  /** Active recurring obligations due this month and not paid yet */
+  unpaidRecurringMonthlyCRC: number
   /** Planned contributions not yet made */
   pendingPlannedContributionsCRC: number
   /** True ledger balance */
@@ -130,6 +134,161 @@ export function computeFinancialPosition(input: FinancialPositionInput): Financi
     horizonDays,
     state,
   }
+}
+
+type DebtReservation = {
+  id: string
+  monthly_amount_crc: number
+  is_active: boolean
+  next_due_date: string | null
+}
+
+type RecurringReservation = {
+  id: string
+  expected_amount_crc: number
+  is_active: boolean
+  next_due_date: string
+}
+
+type ScheduledPaymentLink = {
+  debt_id: string | null
+  recurring_obligation_id: string | null
+  scheduled_due_date: string | null
+}
+
+export function computeMonthlyUnpaidCommitments(
+  debts: DebtReservation[],
+  obligations: RecurringReservation[],
+  transactions: ScheduledPaymentLink[],
+  year: number,
+  month: number,
+): { unpaidDebtsMonthlyCRC: number; unpaidRecurringMonthlyCRC: number } {
+  const monthKey = `${year}-${String(month).padStart(2, '0')}`
+  const unpaidDebtsMonthlyCRC = roundMoney(debts
+    .filter(debt => debt.is_active)
+    .filter(debt => {
+      if (!debt.next_due_date) {
+        return !transactions.some(tx => tx.debt_id === debt.id && tx.scheduled_due_date === null)
+      }
+      return debt.next_due_date.startsWith(`${monthKey}-`) && !transactions.some(tx =>
+        tx.debt_id === debt.id && tx.scheduled_due_date === debt.next_due_date)
+    })
+    .reduce((sum, debt) => sum + debt.monthly_amount_crc, 0))
+
+  const unpaidRecurringMonthlyCRC = roundMoney(obligations
+    .filter(obligation => obligation.is_active && obligation.next_due_date.startsWith(`${monthKey}-`))
+    .filter(obligation => !transactions.some(tx =>
+      tx.recurring_obligation_id === obligation.id && tx.scheduled_due_date === obligation.next_due_date))
+    .reduce((sum, obligation) => sum + obligation.expected_amount_crc, 0))
+
+  return { unpaidDebtsMonthlyCRC, unpaidRecurringMonthlyCRC }
+}
+
+export async function getUpcomingPayments(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  today: string,
+): Promise<PaymentReminder[]> {
+  const [debtsResult, obligationsResult, accountsResult] = await Promise.all([
+    supabase.from('debts')
+      .select('id, name, monthly_amount, currency, next_due_date, payment_account_id')
+      .eq('user_id', userId)
+      .eq('is_active', true),
+    supabase.from('recurring_obligations')
+      .select('id, name, expected_amount, currency, next_due_date, payment_account_id, is_active')
+      .eq('user_id', userId)
+      .eq('is_active', true),
+    supabase.from('payment_accounts')
+      .select('id, name, type, payment_due_day, is_active')
+      .eq('user_id', userId)
+      .eq('is_active', true),
+  ])
+  if (debtsResult.error || obligationsResult.error || accountsResult.error) {
+    throw new Error('No se pudieron cargar los próximos pagos.')
+  }
+  return buildUpcomingPayments({
+    today,
+    debts: (debtsResult.data ?? []) as UpcomingDebt[],
+    obligations: (obligationsResult.data ?? []) as UpcomingObligation[],
+    accounts: (accountsResult.data ?? []) as UpcomingAccount[],
+  })
+}
+
+type UpcomingDebt = Pick<DebtReservation, 'id' | 'next_due_date'> & {
+  name: string
+  monthly_amount: number
+  currency: CurrencyCode
+  payment_account_id: string | null
+}
+
+type UpcomingObligation = Pick<RecurringReservation, 'id' | 'is_active' | 'next_due_date'> & {
+  name: string
+  expected_amount: number
+  currency: CurrencyCode
+  payment_account_id: string | null
+}
+
+type UpcomingAccount = {
+  id: string
+  name: string
+  type: 'credit_card' | 'bank_account'
+  payment_due_day: number | null
+  is_active: boolean
+}
+
+function addDays(date: string, days: number) {
+  const [year, month, day] = date.split('-').map(Number)
+  const target = new Date(Date.UTC(year, month - 1, day + days))
+  return `${target.getUTCFullYear()}-${String(target.getUTCMonth() + 1).padStart(2, '0')}-${String(target.getUTCDate()).padStart(2, '0')}`
+}
+
+function monthlyDueDate(today: string, dueDay: number) {
+  const [year, month] = today.split('-').map(Number)
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
+  return `${year}-${String(month).padStart(2, '0')}-${String(Math.min(dueDay, lastDay)).padStart(2, '0')}`
+}
+
+export function buildUpcomingPayments({ today, debts, obligations, accounts }: {
+  today: string
+  debts: UpcomingDebt[]
+  obligations: UpcomingObligation[]
+  accounts: UpcomingAccount[]
+}): PaymentReminder[] {
+  const windowEnd = addDays(today, 30)
+  const reminders: PaymentReminder[] = []
+  for (const debt of debts) {
+    if (!debt.next_due_date || debt.next_due_date > windowEnd) continue
+    reminders.push({
+      id: `debt:${debt.id}:${debt.next_due_date}`, kind: 'debt', name: debt.name,
+      sourceId: debt.id, dueDate: debt.next_due_date,
+      status: classifyDueDate(debt.next_due_date, today, false),
+      amount: debt.monthly_amount, currency: debt.currency, paymentAccountId: debt.payment_account_id,
+    })
+  }
+  for (const obligation of obligations) {
+    if (!obligation.is_active || obligation.next_due_date > windowEnd) continue
+    reminders.push({
+      id: `recurring:${obligation.id}:${obligation.next_due_date}`, kind: 'recurring', name: obligation.name,
+      sourceId: obligation.id, dueDate: obligation.next_due_date,
+      status: classifyDueDate(obligation.next_due_date, today, false),
+      amount: obligation.expected_amount, currency: obligation.currency,
+      paymentAccountId: obligation.payment_account_id,
+    })
+  }
+  for (const account of accounts) {
+    if (!account.is_active || account.type !== 'credit_card' || !account.payment_due_day) continue
+    const dueDate = monthlyDueDate(today, account.payment_due_day)
+    if (dueDate > windowEnd) continue
+    reminders.push({
+      id: `card:${account.id}:${dueDate}`, kind: 'card', name: account.name, sourceId: account.id,
+      dueDate, status: classifyDueDate(dueDate, today, false), amount: null, currency: null,
+      paymentAccountId: account.id,
+    })
+  }
+  return reminders.toSorted((a, b) => {
+    const statusOrder = { overdue: 0, upcoming: 1, paid: 2 }
+    return statusOrder[a.status] - statusOrder[b.status] || (a.dueDate ?? '').localeCompare(b.dueDate ?? '')
+  })
 }
 
 export type RecentTransactionItem = {
@@ -412,6 +571,7 @@ export async function getCashFlowBreakdown(
     { data: incomeRows, error: incomeError },
     { data: txRows, error: txError },
     { data: debts, error: debtsError },
+    { data: obligations, error: obligationsError },
     { data: funds, error: fundsError },
     { data: rateData, error: rateError },
   ] = await Promise.all([
@@ -423,12 +583,16 @@ export async function getCashFlowBreakdown(
       .limit(1),
     supabase
       .from('transactions')
-      .select('amount_crc, debt_id, transaction_type, category:categories(type)')
+      .select('amount_crc, debt_id, recurring_obligation_id, scheduled_due_date, transaction_type, category:categories(type)')
       .gte('date', dateFrom)
       .lte('date', dateTo),
     supabase
       .from('debts')
-      .select('id, monthly_amount_crc, is_active')
+      .select('id, monthly_amount_crc, is_active, next_due_date')
+      .eq('is_active', true),
+    supabase
+      .from('recurring_obligations')
+      .select('id, expected_amount_crc, is_active, next_due_date')
       .eq('is_active', true),
     supabase
       .from('savings_funds')
@@ -442,13 +606,15 @@ export async function getCashFlowBreakdown(
       .maybeSingle(),
   ])
 
-  if (incomeError || txError || debtsError || fundsError || rateError) {
+  if (incomeError || txError || debtsError || obligationsError || fundsError || rateError) {
     throw new Error('No se pudo cargar el flujo financiero.')
   }
 
   type TxRow = {
     amount_crc: number
     debt_id: string | null
+    recurring_obligation_id: string | null
+    scheduled_due_date: string | null
     transaction_type: string | null
     category: { type: string } | null
   }
@@ -463,15 +629,14 @@ export async function getCashFlowBreakdown(
 
   const ledger = computeLedgerTotals(ledgerTx)
 
-  const paidDebtIds = new Set(
-    typedTx.filter(t => t.debt_id).map(t => t.debt_id as string),
+  const reservations = computeMonthlyUnpaidCommitments(
+    debts ?? [],
+    obligations ?? [],
+    typedTx,
+    year,
+    month,
   )
-
-  const unpaidDebtsMonthlyCRC = roundMoney(
-    (debts ?? [])
-      .filter(d => d.is_active && !paidDebtIds.has(d.id))
-      .reduce((sum, d) => sum + d.monthly_amount_crc, 0),
-  )
+  const { unpaidDebtsMonthlyCRC, unpaidRecurringMonthlyCRC } = reservations
 
   const usdToCRC = rateData?.usd_to_crc ?? 0
   const pendingPlannedContributionsCRC = roundMoney(
@@ -497,6 +662,7 @@ export async function getCashFlowBreakdown(
     ledger,
     salaryIncomeCRC,
     unpaidDebtsMonthlyCRC,
+    unpaidRecurringMonthlyCRC,
     pendingPlannedContributionsCRC: pendingPlanned,
   })
 
@@ -508,6 +674,7 @@ export async function getCashFlowBreakdown(
     reimbursementsCRC: ledger.reimbursements,
     savingsCRC: ledger.savings,
     unpaidDebtsMonthlyCRC,
+    unpaidRecurringMonthlyCRC,
     pendingPlannedContributionsCRC: pendingPlanned,
     availableCRC: projected.ledgerBalance,
     projectedAvailableCRC: projected.projectedAvailable,

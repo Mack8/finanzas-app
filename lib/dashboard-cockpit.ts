@@ -2,20 +2,23 @@ import { computeFinancialPosition, type CashFlowBreakdown, type FinancialPositio
 import type { CategoryExpense } from './reports'
 import { roundMoney } from './transactions'
 import { formatMoney } from './format'
+import type { PaymentReminder } from '@/types/domain'
 
 export type CockpitModel = {
   position: FinancialPosition
   remainingExpensesCRC: number
+  upcomingPayments: PaymentReminder[]
   action: { title: string; reason: string; impact: string; href: string }
   evidence: { pace: string; driver: string; commitments: string }
 }
 
-export function buildCockpit({ cashFlow, transactionCount, dayOfMonth, daysInMonth, expensesByCategory }: {
+export function buildCockpit({ cashFlow, transactionCount, dayOfMonth, daysInMonth, expensesByCategory, upcomingPayments = [] }: {
   cashFlow: CashFlowBreakdown
   transactionCount: number
   dayOfMonth: number
   daysInMonth: number
   expensesByCategory: CategoryExpense[]
+  upcomingPayments?: PaymentReminder[]
 }): CockpitModel {
   const day = Math.min(Math.max(dayOfMonth, 1), daysInMonth)
   const horizonDays = daysInMonth - day + 1
@@ -26,7 +29,7 @@ export function buildCockpit({ cashFlow, transactionCount, dayOfMonth, daysInMon
     : Math.max(0, roundMoney(cashFlow.salaryIncomeCRC - cashFlow.ledgerIncomeCRC))
   const position = computeFinancialPosition({
     confirmedCRC: cashFlow.availableCRC,
-    pendingCommitmentsCRC: cashFlow.unpaidDebtsMonthlyCRC + cashFlow.pendingPlannedContributionsCRC,
+    pendingCommitmentsCRC: cashFlow.unpaidDebtsMonthlyCRC + cashFlow.unpaidRecurringMonthlyCRC + cashFlow.pendingPlannedContributionsCRC,
     futureIncomeCRC, horizonDays, projectedExpensesCRC: remainingExpensesCRC,
   })
   if (transactionCount === 0) position.state = 'incomplete'
@@ -38,7 +41,9 @@ export function buildCockpit({ cashFlow, transactionCount, dayOfMonth, daysInMon
       title: 'Revisá lo que tenés comprometido',
       reason: 'El saldo registrado no alcanza para cubrir los compromisos pendientes.',
       impact: `Faltan ${formatMoney(-position.safeCRC, 'CRC')} para cubrir el periodo.`,
-      href: cashFlow.unpaidDebtsMonthlyCRC > 0 ? '/debts' : cashFlow.pendingPlannedContributionsCRC > 0 ? '/savings' : '/transactions',
+      href: cashFlow.unpaidDebtsMonthlyCRC > 0 || cashFlow.unpaidRecurringMonthlyCRC > 0
+        ? '/payments'
+        : cashFlow.pendingPlannedContributionsCRC > 0 ? '/savings' : '/transactions',
     }
   } else if (position.state === 'attention' && remainingExpensesCRC === 0) {
     action = {
@@ -78,7 +83,7 @@ export function buildCockpit({ cashFlow, transactionCount, dayOfMonth, daysInMon
   const driver = [...expensesByCategory].sort((a, b) => b.totalCRC - a.totalCRC)[0]
   const totalExpenses = expensesByCategory.reduce((sum, category) => sum + category.totalCRC, 0)
   return {
-    position, action, remainingExpensesCRC,
+    position, action, remainingExpensesCRC, upcomingPayments,
     evidence: {
       pace: transactionCount === 0 ? 'Sin movimientos registrados' : `${formatMoney(remainingExpensesCRC, 'CRC')} estimados hasta fin de mes`,
       driver: driver && totalExpenses > 0 ? `${driver.categoryName} · ${(driver.totalCRC / totalExpenses * 100).toFixed(0)}% del gasto` : 'Sin gastos registrados',

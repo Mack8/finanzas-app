@@ -67,6 +67,8 @@ export type ProjectedCashFlowInput = {
   salaryIncomeCRC: number | null
   /** Active debts monthly CRC that do NOT yet have a linked payment tx this month */
   unpaidDebtsMonthlyCRC: number
+  /** Active recurring obligations due in this month and not yet paid */
+  unpaidRecurringMonthlyCRC: number
   /** Planned fund contributions not yet made this month */
   pendingPlannedContributionsCRC: number
 }
@@ -94,6 +96,7 @@ export function computeProjectedCashFlow(input: ProjectedCashFlowInput): Project
       - input.ledger.netExpenses
       - input.ledger.savings
       - input.unpaidDebtsMonthlyCRC
+      - input.unpaidRecurringMonthlyCRC
       - input.pendingPlannedContributionsCRC,
   )
 

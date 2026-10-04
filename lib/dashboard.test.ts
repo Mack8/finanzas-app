@@ -8,6 +8,8 @@ import {
   computeMonthPace,
   computeExpenseSplit,
   computeFinancialPosition,
+  computeMonthlyUnpaidCommitments,
+  buildUpcomingPayments,
 } from './dashboard'
 
 describe('computeTotals', () => {
@@ -168,5 +170,73 @@ describe('computeFinancialPosition', () => {
 
   it('does not invent a projected amount without configured future income', () => {
     expect(computeFinancialPosition({ confirmedCRC: 100000, pendingCommitmentsCRC: 0, futureIncomeCRC: null, horizonDays: 10, projectedExpensesCRC: 0 }).projectedCRC).toBeNull()
+  })
+})
+
+describe('monthly unpaid commitment reservations', () => {
+  it('reserves only dated debt and recurring occurrences falling in the requested month', () => {
+    const result = computeMonthlyUnpaidCommitments(
+      [
+        { id: 'debt-current', monthly_amount_crc: 30000, is_active: true, next_due_date: '2026-10-31' },
+        { id: 'debt-last-month', monthly_amount_crc: 40000, is_active: true, next_due_date: '2026-09-30' },
+      ],
+      [
+        { id: 'bill-current', expected_amount_crc: 12000, is_active: true, next_due_date: '2026-10-15' },
+        { id: 'bill-next-month', expected_amount_crc: 7000, is_active: true, next_due_date: '2026-11-15' },
+      ],
+      [],
+      2026,
+      10,
+    )
+    expect(result).toEqual({ unpaidDebtsMonthlyCRC: 30000, unpaidRecurringMonthlyCRC: 12000 })
+  })
+
+  it('keeps the old monthly debt reservation until dated and avoids subtracting a paid occurrence twice', () => {
+    const result = computeMonthlyUnpaidCommitments(
+      [
+        { id: 'legacy-unpaid', monthly_amount_crc: 20000, is_active: true, next_due_date: null },
+        { id: 'legacy-paid', monthly_amount_crc: 15000, is_active: true, next_due_date: null },
+        { id: 'dated-paid', monthly_amount_crc: 9000, is_active: true, next_due_date: '2026-10-10' },
+      ],
+      [
+        { id: 'bill-paid', expected_amount_crc: 5000, is_active: true, next_due_date: '2026-10-12' },
+        { id: 'bill-next-occurrence', expected_amount_crc: 8000, is_active: true, next_due_date: '2026-10-20' },
+      ],
+      [
+        { debt_id: 'legacy-paid', recurring_obligation_id: null, scheduled_due_date: null },
+        { debt_id: 'dated-paid', recurring_obligation_id: null, scheduled_due_date: '2026-10-10' },
+        { debt_id: null, recurring_obligation_id: 'bill-paid', scheduled_due_date: '2026-10-12' },
+        { debt_id: null, recurring_obligation_id: 'bill-next-occurrence', scheduled_due_date: '2026-09-20' },
+      ],
+      2026,
+      10,
+    )
+    expect(result).toEqual({ unpaidDebtsMonthlyCRC: 20000, unpaidRecurringMonthlyCRC: 8000 })
+  })
+})
+
+describe('dashboard payment window', () => {
+  it('shows overdue items and due dates through day 30, includes cards without amounts, and excludes inactive items', () => {
+    const result = buildUpcomingPayments({
+      today: '2026-10-04',
+      debts: [
+        { id: 'd1', name: 'Leasing', monthly_amount: 30000, currency: 'CRC', next_due_date: '2026-10-01', payment_account_id: null },
+        { id: 'd2', name: 'Later', monthly_amount: 10000, currency: 'CRC', next_due_date: '2026-11-04', payment_account_id: null },
+      ],
+      obligations: [
+        { id: 'r1', name: 'Internet', expected_amount: 25000, currency: 'CRC', next_due_date: '2026-11-03', payment_account_id: null, is_active: true },
+        { id: 'r2', name: 'Inactive', expected_amount: 5000, currency: 'CRC', next_due_date: '2026-10-10', payment_account_id: null, is_active: false },
+      ],
+      accounts: [
+        { id: 'c1', name: 'Visa', type: 'credit_card', payment_due_day: 31, is_active: true },
+        { id: 'c2', name: 'Cuenta', type: 'bank_account', payment_due_day: 10, is_active: true },
+      ],
+    })
+    expect(result.map(item => [item.name, item.dueDate, item.status])).toEqual([
+      ['Leasing', '2026-10-01', 'overdue'],
+      ['Visa', '2026-10-31', 'upcoming'],
+      ['Internet', '2026-11-03', 'upcoming'],
+    ])
+    expect(result[1]).toMatchObject({ amount: null, currency: null, kind: 'card' })
   })
 })

@@ -1,13 +1,45 @@
 import Link from 'next/link'
-import { formatMoney } from '@/lib/format'
+import { formatDate, formatMoney } from '@/lib/format'
+import type { PaymentReminder } from '@/types/domain'
 
 export type SavingsView = { id: string; name: string; current_amount_crc: number; goal_amount_crc: number }
 export type DebtView = { id: string; name: string; monthly_amount_crc: number; totalPending: number; paid_installments: number; total_installments: number }
 
-export function CommitmentRail({ savingsFunds, debts }: { savingsFunds: SavingsView[]; debts: DebtView[] }) {
+function paymentStatus(status: PaymentReminder['status']) {
+  return status === 'overdue' ? 'Vencido' : status === 'paid' ? 'Pagado' : 'Próximo'
+}
+
+export function CommitmentRail({ savingsFunds, debts, payments = [] }: { savingsFunds: SavingsView[]; debts: DebtView[]; payments?: PaymentReminder[] }) {
   return (
     <section aria-labelledby="financial-health" className="space-y-4">
       <h2 id="financial-health" className="text-lg font-semibold">Salud financiera</h2>
+      <div role="region" aria-label="Próximos pagos" className="rounded-2xl border bg-card p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="font-semibold">Vencimientos</h3>
+          <Link href="/payments" className="text-xs underline underline-offset-4">Ver pagos →</Link>
+        </div>
+        {payments.length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">No hay vencimientos en los próximos 30 días.</p>
+        ) : (
+          <ul className="mt-3 divide-y">
+            {payments.slice(0, 5).map(payment => (
+              <li key={payment.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                <div className="min-w-0">
+                  <p className="break-words text-sm font-medium">{payment.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {payment.dueDate ? formatDate(payment.dueDate) : 'Fecha por configurar'} · {paymentStatus(payment.status)}
+                  </p>
+                </div>
+                <span className="shrink-0 text-right text-sm font-medium tabular-nums">
+                  {payment.amount === null || payment.currency === null
+                    ? 'Monto no disponible'
+                    : formatMoney(payment.amount, payment.currency)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border bg-card p-5 sm:p-6">
           <div className="flex items-center justify-between gap-3"><h3 className="font-semibold">Fondos de ahorro</h3><Link href="/savings" className="text-xs underline underline-offset-4">Ver fondos →</Link></div>

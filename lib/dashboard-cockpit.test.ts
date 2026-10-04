@@ -5,7 +5,7 @@ import { buildCockpit } from './dashboard-cockpit'
 const cashFlow: CashFlowBreakdown = {
   ledgerIncomeCRC: 300000, salaryIncomeCRC: 600000,
   expensesCRC: 50000, netExpensesCRC: 50000, reimbursementsCRC: 0,
-  savingsCRC: 0, unpaidDebtsMonthlyCRC: 20000,
+  savingsCRC: 0, unpaidDebtsMonthlyCRC: 20000, unpaidRecurringMonthlyCRC: 0,
   pendingPlannedContributionsCRC: 30000, availableCRC: 250000,
   projectedAvailableCRC: 200000, usedSalaryFallback: false,
 }
@@ -32,6 +32,10 @@ describe('cockpit financial decisions', () => {
 
   it('does not subtract income above the configured amount from the projection', () => {
     expect(cockpit({ ledgerIncomeCRC: 700000 }).position.projectedCRC).toBe(200000)
+  })
+
+  it('reserves unpaid recurring commitments in addition to debts and savings', () => {
+    expect(cockpit({ unpaidRecurringMonthlyCRC: 12000 }).position.safeCRC).toBe(188000)
   })
 
   it('compares remaining spending with remaining money rather than the whole month', () => {
@@ -72,7 +76,7 @@ describe('cockpit financial decisions', () => {
     const result = cockpit({ availableCRC: 20000, salaryIncomeCRC: null })
     expect(result.position.state).toBe('risk')
     expect(result.position.dailySafeCRC).toBeLessThanOrEqual(0)
-    expect(result.action.href).toBe('/debts')
+    expect(result.action.href).toBe('/payments')
   })
 
   it('uses actual spending to identify the driver even without a category budget', () => {

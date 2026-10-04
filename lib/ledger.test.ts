@@ -44,6 +44,7 @@ describe('computeProjectedCashFlow', () => {
       ledger,
       salaryIncomeCRC: 1000,
       unpaidDebtsMonthlyCRC: 200,
+      unpaidRecurringMonthlyCRC: 0,
       pendingPlannedContributionsCRC: 50,
     })
     expect(result.ledgerBalance).toBe(400)
@@ -59,6 +60,7 @@ describe('computeProjectedCashFlow', () => {
       ledger,
       salaryIncomeCRC: 900,
       unpaidDebtsMonthlyCRC: 100,
+      unpaidRecurringMonthlyCRC: 0,
       pendingPlannedContributionsCRC: 0,
     })
     expect(result.usedSalaryFallback).toBe(true)
@@ -75,10 +77,23 @@ describe('computeProjectedCashFlow', () => {
       ledger,
       salaryIncomeCRC: 1000,
       unpaidDebtsMonthlyCRC: 0,
+      unpaidRecurringMonthlyCRC: 0,
       pendingPlannedContributionsCRC: 0,
     })
     expect(result.ledgerBalance).toBe(850)
     expect(result.projectedAvailable).toBe(850)
+  })
+
+  it('subtracts unpaid recurring obligations separately from debt and savings commitments', () => {
+    const ledger = computeLedgerTotals([{ amount_crc: 100000, category_type: 'income' }])
+    const result = computeProjectedCashFlow({
+      ledger,
+      salaryIncomeCRC: 100000,
+      unpaidDebtsMonthlyCRC: 10000,
+      unpaidRecurringMonthlyCRC: 15000,
+      pendingPlannedContributionsCRC: 5000,
+    })
+    expect(result.projectedAvailable).toBe(70000)
   })
 })
 

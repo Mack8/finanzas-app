@@ -5,10 +5,11 @@ import {
   getDashboardSummary,
   getCashFlowBreakdown,
   getMonthlyExpensesByCategory,
+  getUpcomingPayments,
 } from '@/lib/dashboard'
 import { buildCockpit } from '@/lib/dashboard-cockpit'
 import { createClient } from '@/lib/supabase/server'
-import { formatDate } from '@/lib/format'
+import { formatDate, getTodayCR } from '@/lib/format'
 import { computeDebtProjection } from '@/lib/debts'
 import { DashboardCockpit } from '@/components/dashboard/DashboardCockpit'
 import { BudgetList } from '@/components/dashboard/BudgetList'
@@ -22,14 +23,16 @@ export default async function DashboardPage() {
 
   const { year, month } = getCurrentMonthCR()
   const daysInMonth = new Date(year, month, 0).getDate()
+  const today = getTodayCR()
   const dayOfMonth = Number(
     new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica', day: '2-digit' }).format(new Date()),
   )
 
-  const [summary, cashFlow, expensesByCategory, savingsResult, debtsResult, rateResult] = await Promise.all([
+  const [summary, cashFlow, expensesByCategory, upcomingPayments, savingsResult, debtsResult, rateResult] = await Promise.all([
     getDashboardSummary(supabase, year, month),
     getCashFlowBreakdown(supabase, year, month),
     getMonthlyExpensesByCategory(supabase, year, month),
+    getUpcomingPayments(supabase, user.id, today),
     supabase
       .from('savings_funds')
       .select('id, name, goal_amount_crc, current_amount_crc')
@@ -38,7 +41,7 @@ export default async function DashboardPage() {
       .order('created_at', { ascending: true }),
     supabase
       .from('debts')
-      .select('id, user_id, name, monthly_amount, currency, monthly_amount_crc, total_installments, paid_installments, start_date, payment_account_id, is_active, created_at')
+      .select('id, user_id, name, monthly_amount, currency, monthly_amount_crc, total_installments, paid_installments, start_date, next_due_date, due_day, payment_account_id, is_active, created_at')
       .eq('user_id', user.id)
       .eq('is_active', true)
       .order('created_at', { ascending: true }),
@@ -55,7 +58,7 @@ export default async function DashboardPage() {
 
   const model = buildCockpit({
     cashFlow, transactionCount: summary.transactionCount,
-    dayOfMonth, daysInMonth, expensesByCategory,
+    dayOfMonth, daysInMonth, expensesByCategory, upcomingPayments,
   })
   const debts = ((debtsResult.data ?? []) as Debt[]).map(computeDebtProjection)
   const monthLabel = new Intl.DateTimeFormat('es-CR', {
