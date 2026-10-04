@@ -84,12 +84,12 @@ export function EditTransactionDialog({ transaction, categories, latestExchangeR
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+      <DialogTrigger disabled={pending} render={<Button variant="outline" size="sm" />}>
         Editar
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Editar transacción</DialogTitle>
+          <DialogTitle>Editar movimiento</DialogTitle>
         </DialogHeader>
         <form key={formKey} action={formAction} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
@@ -159,7 +159,7 @@ export function EditTransactionDialog({ transaction, categories, latestExchangeR
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor={`transactionType-${transaction.id}`}>Tipo</Label>
+              <Label htmlFor={`transactionType-${transaction.id}`}>Ámbito</Label>
               <select
                 id={`transactionType-${transaction.id}`}
                 name="transactionType"

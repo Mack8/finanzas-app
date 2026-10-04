@@ -71,7 +71,7 @@ export function KpiCard({
             </div>
           ) : null}
         </div>
-        <p className={cn('text-2xl font-semibold tabular-nums tracking-tight', styles.value)}>
+        <p className={cn('text-xl font-semibold tabular-nums tracking-tight [overflow-wrap:anywhere] sm:text-2xl', styles.value)}>
           {value}
         </p>
         {footer ? <div className="pt-0.5">{footer}</div> : null}

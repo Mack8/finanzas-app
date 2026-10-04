@@ -40,7 +40,7 @@ export function DeleteTransactionDialog({ transactionId, description }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+      <DialogTrigger disabled={pending} render={<Button variant="outline" size="sm" />}>
         Eliminar
       </DialogTrigger>
       <DialogContent>

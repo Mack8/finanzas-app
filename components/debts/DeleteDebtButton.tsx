@@ -38,7 +38,7 @@ export function DeleteDebtButton({ debtId, debtName, paidInstallments }: Props) 
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>Eliminar</DialogTrigger>
+      <DialogTrigger disabled={pending} render={<Button variant="outline" size="sm" />}>Eliminar</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>¿Eliminar deuda?</DialogTitle>

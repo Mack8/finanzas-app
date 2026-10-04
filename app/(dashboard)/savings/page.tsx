@@ -4,6 +4,7 @@ import { AddContributionDialog } from '@/components/savings/AddContributionDialo
 import { CreateSavingsFundForm } from '@/components/savings/CreateSavingsFundForm'
 import { DeleteContributionButton } from '@/components/savings/DeleteContributionButton'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { CreationPanel } from '@/components/layout/CreationPanel'
 import { KpiCard } from '@/components/layout/KpiCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getLatestExchangeRate } from '@/lib/bccr/exchange-rate'
@@ -59,7 +60,9 @@ export default async function SavingsPage() {
         description="Fondos de ahorro con metas y seguimiento de aportes."
       />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <CreationPanel label="Crear fondo"><CreateSavingsFundForm latestExchangeRate={latestExchangeRate} /></CreationPanel>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <KpiCard
           title="Total ahorrado"
           description="Suma de todos los fondos"
@@ -82,9 +85,7 @@ export default async function SavingsPage() {
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_1fr]">
-        <CreateSavingsFundForm latestExchangeRate={latestExchangeRate} />
-
+      <div>
         <div className="space-y-4">
           {progressFunds.length === 0 ? (
             <Card>

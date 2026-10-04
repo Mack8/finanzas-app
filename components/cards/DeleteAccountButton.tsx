@@ -42,7 +42,7 @@ export function DeleteAccountButton({ accountId, accountName, transactionCount }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>Eliminar</DialogTrigger>
+      <DialogTrigger disabled={pending} render={<Button variant="outline" size="sm" />}>Eliminar</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>¿Eliminar cuenta?</DialogTitle>

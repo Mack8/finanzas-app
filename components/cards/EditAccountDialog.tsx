@@ -31,7 +31,7 @@ export function EditAccountDialog({ account }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>Editar</DialogTrigger>
+      <DialogTrigger disabled={pending} render={<Button variant="outline" size="sm" />}>Editar</DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Editar cuenta</DialogTitle>

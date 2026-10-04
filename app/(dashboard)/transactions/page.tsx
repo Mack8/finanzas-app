@@ -1,12 +1,13 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
-import { ArrowLeftRight, TrendingDown, TrendingUp, Banknote } from 'lucide-react'
+import { TrendingDown, TrendingUp } from 'lucide-react'
 import { CreateTransactionForm } from '@/components/transactions/CreateTransactionForm'
 import { DeleteTransactionDialog } from '@/components/transactions/DeleteTransactionDialog'
 import { EditTransactionDialog } from '@/components/transactions/EditTransactionDialog'
 import { RefreshExchangeRateButton } from '@/components/transactions/RefreshExchangeRateButton'
 import { TransactionFilters } from '@/components/transactions/TransactionFilters'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { CreationPanel } from '@/components/layout/CreationPanel'
 import { KpiCard } from '@/components/layout/KpiCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getLatestExchangeRate, isExchangeRateSyncConfigured } from '@/lib/bccr/exchange-rate'
@@ -131,64 +132,42 @@ export default async function TransactionsPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Transacciones"
+        title="Movimientos"
         description="Registrá y consultá tus movimientos financieros."
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard
-          title="Resultados"
-          description="En el período"
-          value={transactions.length}
-          icon={ArrowLeftRight}
-          tone="primary"
-        />
+      <CreationPanel label="Registrar movimiento">
+        <CreateTransactionForm categories={categories} latestExchangeRate={latestExchangeRate} accounts={accounts} />
+      </CreationPanel>
+
+      <p className="text-sm text-muted-foreground">Mostrando {transactions.length} movimientos (máximo 50). Los totales corresponden a estos resultados.</p>
+      <div className="grid grid-cols-2 gap-3">
         <KpiCard
           title="Ingresos"
-          description="Categoría income · CRC"
+          description="De los movimientos mostrados"
           value={formatMoney(ledgerTotals.income, 'CRC')}
           icon={TrendingUp}
           tone="success"
         />
         <KpiCard
           title="Gastos"
-          description="Fijos + variables (sin ahorro)"
+          description="De los movimientos mostrados"
           value={formatMoney(ledgerTotals.expenses, 'CRC')}
           icon={TrendingDown}
           tone="danger"
         />
-        <KpiCard
-          title="Tipo de cambio"
-          description={
-            latestExchangeRate
-              ? `Venta BCCR ${formatDate(latestExchangeRate.date)}`
-              : 'Sin datos'
-          }
-          value={latestExchangeRate ? latestExchangeRate.usd_to_crc.toFixed(2) : 'N/D'}
-          icon={Banknote}
-          footer={
-            exchangeRateSyncConfigured ? (
-              <RefreshExchangeRateButton />
-            ) : (
-              <p className="text-xs text-warning">
-                Configurá BCCR y SUPABASE_SERVICE_ROLE_KEY para sincronizar.
-              </p>
-            )
-          }
-        />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <span>{latestExchangeRate ? `Venta BCCR: 1 USD = ₡${latestExchangeRate.usd_to_crc.toFixed(2)} · ${formatDate(latestExchangeRate.date)}` : 'Tipo de cambio no disponible. Podés registrar en colones.'}</span>
+        {exchangeRateSyncConfigured && <RefreshExchangeRateButton />}
       </div>
 
       <Suspense fallback={<div className="h-8" />}>
         <TransactionFilters categories={categories} defaultMonth={monthStr} />
       </Suspense>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_1fr]">
-        <CreateTransactionForm
-          categories={categories}
-          latestExchangeRate={latestExchangeRate}
-          accounts={accounts}
-        />
-
+      <div>
         <Card>
           <CardHeader>
             <CardTitle>Historial</CardTitle>

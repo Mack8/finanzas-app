@@ -34,7 +34,7 @@ export function MarkPaidButton({ debtId, debtName, paidInstallments, totalInstal
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+      <DialogTrigger disabled={pending} render={<Button variant="outline" size="sm" />}>
         Marcar pagada
       </DialogTrigger>
       <DialogContent>

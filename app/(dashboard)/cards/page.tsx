@@ -4,6 +4,7 @@ import { CreateAccountForm } from '@/components/cards/CreateAccountForm'
 import { DeleteAccountButton } from '@/components/cards/DeleteAccountButton'
 import { EditAccountDialog } from '@/components/cards/EditAccountDialog'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { CreationPanel } from '@/components/layout/CreationPanel'
 import { KpiCard } from '@/components/layout/KpiCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/server'
@@ -46,11 +47,13 @@ export default async function CardsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Tarjetas y cuentas"
+        title="Cuentas"
         description="Administrá tus tarjetas de crédito y cuentas bancarias."
       />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <CreationPanel label="Agregar cuenta"><CreateAccountForm /></CreationPanel>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <KpiCard
           title="Total de cuentas"
           description="Registradas"
@@ -72,9 +75,7 @@ export default async function CardsPage() {
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_1fr]">
-        <CreateAccountForm />
-
+      <div>
         <div className="space-y-4">
           {accounts.length === 0 ? (
             <Card>

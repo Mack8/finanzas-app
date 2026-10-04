@@ -29,7 +29,7 @@ export function DeleteContributionButton({ contributionId, amountLabel }: Props)
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={<Button variant="ghost" size="sm" />}>Eliminar</DialogTrigger>
+      <DialogTrigger disabled={pending} render={<Button variant="ghost" size="sm" />}>Eliminar</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>¿Eliminar aporte?</DialogTitle>

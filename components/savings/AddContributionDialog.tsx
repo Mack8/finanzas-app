@@ -35,7 +35,7 @@ export function AddContributionDialog({ fundId, fundName, latestExchangeRate }: 
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+      <DialogTrigger disabled={pending} render={<Button variant="outline" size="sm" />}>
         Agregar aporte
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
