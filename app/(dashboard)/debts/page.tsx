@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { CalendarClock, CircleDollarSign, ListChecks } from 'lucide-react'
 import { CreateDebtForm } from '@/components/debts/CreateDebtForm'
 import { ConfigureDebtDueDateButton } from '@/components/debts/ConfigureDebtDueDateButton'
@@ -42,6 +43,7 @@ export default async function DebtsPage() {
       <PageHeader
         title="Deudas"
         description="Seguimiento de cuotas fijas y compromisos de pago."
+        actions={<Link href="/payments" className="text-sm font-medium text-primary underline-offset-4 hover:underline">Ver todos los pagos</Link>}
       />
 
       <FormDialog triggerLabel="Registrar deuda" title="Nueva deuda" description="Registrá cuotas fijas: leasing, tarjetas a plazo, préstamos.">

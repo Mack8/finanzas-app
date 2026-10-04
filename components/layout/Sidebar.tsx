@@ -11,6 +11,7 @@ import {
   BarChart3,
   Settings,
   Wallet,
+  CalendarClock,
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -19,6 +20,7 @@ import { useSidebarContext } from './sidebar-context'
 const navItems = [
   { href: '/',             label: 'Resumen',     icon: LayoutDashboard },
   { href: '/transactions', label: 'Movimientos',  icon: ArrowLeftRight },
+  { href: '/payments',     label: 'Pagos',         icon: CalendarClock },
   { href: '/savings',      label: 'Ahorro',         icon: PiggyBank },
   { href: '/debts',        label: 'Deudas',         icon: TrendingDown },
   { href: '/cards',        label: 'Cuentas',       icon: CreditCard },

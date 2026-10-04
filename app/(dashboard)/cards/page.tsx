@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { CreditCard, Landmark, WalletCards } from 'lucide-react'
 import { CreateAccountForm } from '@/components/cards/CreateAccountForm'
 import { DeleteAccountButton } from '@/components/cards/DeleteAccountButton'
@@ -49,6 +50,7 @@ export default async function CardsPage() {
       <PageHeader
         title="Cuentas"
         description="Administrá tus tarjetas de crédito y cuentas bancarias."
+        actions={<Link href="/payments" className="text-sm font-medium text-primary underline-offset-4 hover:underline">Ver vencimientos</Link>}
       />
 
       <FormDialog triggerLabel="Agregar cuenta" title="Nueva cuenta" description="Registrá una tarjeta de crédito o una cuenta bancaria para asociarla a tus movimientos.">

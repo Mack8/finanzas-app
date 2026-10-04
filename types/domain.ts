@@ -33,7 +33,7 @@ export type PaymentReminder = {
   id: string
   kind: 'debt' | 'recurring' | 'card'
   name: string
-  dueDate: string
+  dueDate: string | null
   status: 'overdue' | 'upcoming' | 'paid'
   amount: number | null
   currency: CurrencyCode | null
