@@ -150,19 +150,6 @@ async function fetchExchangeRatesFromBCCR(startDate: Date, endDate: Date) {
   return parseBCCRIndicatorResponse(await response.text())
 }
 
-async function fetchLatestExchangeRateFromBCCR() {
-  const today = new Date()
-  const startDate = subtractDays(today, BCCR_LOOKBACK_DAYS)
-  const parsedValues = await fetchExchangeRatesFromBCCR(startDate, today)
-  const latestValue = parsedValues.at(-1)
-
-  if (!latestValue) {
-    throw new Error('No se encontró un tipo de cambio utilizable en la respuesta del BCCR.')
-  }
-
-  return latestValue
-}
-
 export function isExchangeRateSyncConfigured() {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
