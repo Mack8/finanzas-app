@@ -17,10 +17,19 @@ async function fillAndSubmit(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText('Monto mensual'), '25000')
   await user.type(screen.getByLabelText('Total de cuotas'), '12')
   await user.type(screen.getByLabelText('Fecha de inicio'), '2026-10-01')
+  await user.type(screen.getByLabelText('Próxima fecha de vencimiento'), '2026-11-01')
   await user.click(screen.getByRole('button', { name: 'Registrar deuda' }))
 }
 
 beforeEach(() => vi.clearAllMocks())
+
+it('requires an exact next due date when creating a debt', async () => {
+  const user = userEvent.setup()
+  renderForm()
+  await user.click(screen.getByRole('button', { name: 'Registrar deuda' }))
+  expect(screen.getByLabelText('Próxima fecha de vencimiento')).toBeRequired()
+  expect(mocks.createDebtAction).not.toHaveBeenCalled()
+})
 
 it('keepsValuesAndDialogOpenOnValidationError', async () => {
   mocks.createDebtAction.mockResolvedValue({ status: 'error', message: 'Revisá la deuda.' })

@@ -77,6 +77,16 @@ export const categorySchema = z.object({
   message: 'Seleccioná la moneda del presupuesto.',
 })
 
+export const debtNextDueDateSchema = z.object({
+  nextDueDate: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Ingresá una fecha válida.')
+    .refine(value => {
+      const [year, month, day] = value.split('-').map(Number)
+      const parsed = new Date(Date.UTC(year, month - 1, day))
+      return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day
+    }, 'Ingresá una fecha válida.'),
+})
+
 export const debtSchema = z.object({
   name: z.string()
     .trim()
@@ -91,6 +101,7 @@ export const debtSchema = z.object({
     .min(1, 'Debe tener al menos 1 cuota')
     .max(360, 'No puede exceder 360 cuotas'),
   startDate: z.string().min(1, 'La fecha de inicio es obligatoria'),
+  nextDueDate: debtNextDueDateSchema.shape.nextDueDate,
   notes: z.string().trim().max(500, 'Las notas no pueden exceder 500 caracteres').optional().or(z.literal('')),
 })
 

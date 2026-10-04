@@ -58,6 +58,11 @@ export function CreateDebtForm({ latestExchangeRate }: Props) {
               <Input id="debt-start" name="startDate" type="date" required />
               {state.fieldErrors?.startDate?.[0] && <p className="text-sm text-danger">{state.fieldErrors.startDate[0]}</p>}
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="debt-next-due">Próxima fecha de vencimiento</Label>
+              <Input id="debt-next-due" name="nextDueDate" type="date" required />
+              {state.fieldErrors?.nextDueDate?.[0] && <p className="text-sm text-danger">{state.fieldErrors.nextDueDate[0]}</p>}
+            </div>
           </div>
 
           <div className="space-y-2">

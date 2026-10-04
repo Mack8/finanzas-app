@@ -4,11 +4,12 @@ import { getLatestExchangeRate } from '@/lib/bccr/exchange-rate'
 import { resolveCategoryForType } from '@/lib/categories-resolve'
 import { revalidateMoneyPaths } from '@/lib/revalidate'
 import { createClient } from '@/lib/supabase/server'
+import { addMonthsAtAnchor } from '@/lib/payment-schedule'
 import { resolveAmountCRC, type ExchangeRateSnapshot } from '@/lib/transactions'
-import { debtSchema } from '@/lib/validations'
+import { debtNextDueDateSchema, debtSchema } from '@/lib/validations'
 
 type DebtFieldErrors = Partial<Record<
-  'name' | 'monthlyAmount' | 'currency' | 'totalInstallments' | 'startDate' | 'notes',
+  'name' | 'monthlyAmount' | 'currency' | 'totalInstallments' | 'startDate' | 'nextDueDate' | 'notes',
   string[]
 >>
 
@@ -46,6 +47,7 @@ export async function createDebtAction(
     currency: formData.get('currency'),
     totalInstallments: formData.get('totalInstallments'),
     startDate: formData.get('startDate'),
+    nextDueDate: formData.get('nextDueDate'),
     notes: formData.get('notes'),
   })
   if (!parsed.success) {
@@ -90,6 +92,8 @@ export async function createDebtAction(
     total_installments: values.totalInstallments,
     paid_installments: 0,
     start_date: values.startDate,
+    next_due_date: values.nextDueDate,
+    due_day: Number(values.nextDueDate.slice(-2)),
     notes: values.notes || null,
     is_active: true,
   })
@@ -114,12 +118,15 @@ export async function markInstallmentPaidAction(
 
   const { data: debtRow } = await supabase
     .from('debts')
-    .select('id, name, monthly_amount, currency, monthly_amount_crc, paid_installments, total_installments, payment_account_id, is_active')
+    .select('id, name, monthly_amount, currency, paid_installments, total_installments, payment_account_id, next_due_date, due_day, is_active')
     .eq('id', id)
     .eq('user_id', user.id)
     .maybeSingle()
 
   if (!debtRow) return { status: 'error', message: 'Deuda no encontrada.' }
+  if (!debtRow.next_due_date || !debtRow.due_day) {
+    return { status: 'error', message: 'Configurá la próxima fecha de vencimiento antes de registrar la cuota.' }
+  }
   if (!debtRow.is_active || debtRow.paid_installments >= debtRow.total_installments) {
     return { status: 'error', message: 'Esta deuda ya está completamente pagada.' }
   }
@@ -139,74 +146,44 @@ export async function markInstallmentPaidAction(
 
   const installmentNumber = debtRow.paid_installments + 1
   const payDate = todayCR()
-
-  // Create ledger entry first so available balance stays consistent
-  const { data: txRow, error: txError } = await supabase
-    .from('transactions')
-    .insert({
-      user_id: user.id,
-      date: payDate,
-      description: `Cuota ${installmentNumber}/${debtRow.total_installments} · ${debtRow.name}`,
-      amount: debtRow.monthly_amount,
-      currency: debtRow.currency,
-      amount_crc: debtRow.monthly_amount_crc,
-      category_id: category.id,
-      payment_account_id: debtRow.payment_account_id,
-      transaction_type: 'personal',
-      tags: ['debt-payment'],
-      notes: null,
-      debt_id: debtRow.id,
-    })
-    .select('id')
-    .maybeSingle()
-
-  if (txError || !txRow) {
-    // Fallback if debt_id column not migrated yet
-    if (txError?.message?.includes('debt_id') || txError?.code === 'PGRST204') {
-      const { data: fallbackTx, error: fallbackErr } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: user.id,
-          date: payDate,
-          description: `Cuota ${installmentNumber}/${debtRow.total_installments} · ${debtRow.name}`,
-          amount: debtRow.monthly_amount,
-          currency: debtRow.currency,
-          amount_crc: debtRow.monthly_amount_crc,
-          category_id: category.id,
-          payment_account_id: debtRow.payment_account_id,
-          transaction_type: 'personal',
-          tags: ['debt-payment'],
-          notes: `debt:${debtRow.id}`,
-        })
-        .select('id')
-        .maybeSingle()
-
-      if (fallbackErr || !fallbackTx) {
-        return { status: 'error', message: 'No se pudo registrar la transacción de la cuota.' }
-      }
-    } else {
-      return { status: 'error', message: 'No se pudo registrar la transacción de la cuota.' }
+  let latestExchangeRate: ExchangeRateSnapshot | null = null
+  if (debtRow.currency === 'USD') {
+    try {
+      latestExchangeRate = await getLatestExchangeRate({ ensureFresh: true })
+    } catch (error) {
+      return { status: 'error', message: error instanceof Error ? error.message : 'No se pudo obtener el tipo de cambio.' }
     }
   }
 
-  const newPaid = installmentNumber
-  const isNowComplete = newPaid >= debtRow.total_installments
-
-  const { data: updatedRows, error } = await supabase
-    .from('debts')
-    .update({ paid_installments: newPaid, is_active: !isNowComplete })
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .eq('paid_installments', debtRow.paid_installments)
-    .select('id')
-
-  if (error || !updatedRows?.length) {
-    // Roll back transaction if debt update lost the race
-    if (txRow?.id) {
-      await supabase.from('transactions').delete().eq('id', txRow.id).eq('user_id', user.id)
-    }
-    return { status: 'error', message: 'No se pudo registrar el pago. Intentá de nuevo.' }
+  let resolvedAmount: ReturnType<typeof resolveAmountCRC>
+  try {
+    resolvedAmount = resolveAmountCRC(debtRow.monthly_amount, debtRow.currency, latestExchangeRate)
+  } catch (error) {
+    return { status: 'error', message: error instanceof Error ? error.message : 'No se pudo convertir el monto de la cuota.' }
   }
+
+  const { error: paymentError } = await supabase.rpc('pay_debt_installment', {
+    p_debt_id: debtRow.id,
+    p_scheduled_due_date: debtRow.next_due_date,
+    p_paid_on: payDate,
+    p_amount: debtRow.monthly_amount,
+    p_amount_crc: resolvedAmount.amountCRC,
+    p_currency: debtRow.currency,
+    p_exchange_rate_id: resolvedAmount.exchangeRateId,
+    p_category_id: category.id,
+    p_payment_account_id: debtRow.payment_account_id,
+  })
+
+  if (paymentError) {
+    return {
+      status: 'error',
+      message: paymentError.message.includes('transactions_debt_due_unique_idx')
+        ? 'Esta cuota ya tiene un pago registrado.'
+        : 'No se pudo registrar el pago. Revisá que la fecha no haya cambiado e intentá de nuevo.',
+    }
+  }
+
+  const isNowComplete = installmentNumber >= debtRow.total_installments
 
   revalidateMoneyPaths()
   return {
@@ -215,6 +192,45 @@ export async function markInstallmentPaidAction(
       ? 'Deuda completada y registrada en el ledger. ¡Felicitaciones!'
       : 'Cuota pagada y registrada como transacción.',
   }
+}
+
+export async function setDebtNextDueDateAction(
+  id: string,
+  _prevState: DebtActionState,
+  formData: FormData,
+): Promise<DebtActionState> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { status: 'error', message: 'Tu sesión ya no es válida. Volvé a iniciar sesión.' }
+
+  const parsed = debtNextDueDateSchema.safeParse({ nextDueDate: formData.get('nextDueDate') })
+  if (!parsed.success) {
+    return {
+      status: 'error',
+      message: 'Ingresá una fecha de vencimiento válida.',
+      fieldErrors: parsed.error.flatten().fieldErrors as DebtFieldErrors,
+    }
+  }
+
+  const nextDueDate = parsed.data.nextDueDate
+  const dueDay = Number(nextDueDate.slice(-2))
+  try {
+    addMonthsAtAnchor(nextDueDate, 1, dueDay)
+  } catch {
+    return { status: 'error', message: 'Ingresá una fecha de vencimiento válida.' }
+  }
+
+  const { data: updated, error } = await supabase
+    .from('debts')
+    .update({ next_due_date: nextDueDate, due_day: dueDay })
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .select('id')
+    .maybeSingle()
+
+  if (error || !updated) return { status: 'error', message: 'No se pudo actualizar el vencimiento de la deuda.' }
+  revalidateMoneyPaths()
+  return { status: 'success', message: 'Próximo vencimiento configurado.' }
 }
 
 export async function deleteDebtAction(

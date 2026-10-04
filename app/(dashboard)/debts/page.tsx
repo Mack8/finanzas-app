@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { CalendarClock, CircleDollarSign, ListChecks } from 'lucide-react'
 import { CreateDebtForm } from '@/components/debts/CreateDebtForm'
+import { ConfigureDebtDueDateButton } from '@/components/debts/ConfigureDebtDueDateButton'
 import { DeleteDebtButton } from '@/components/debts/DeleteDebtButton'
 import { MarkPaidButton } from '@/components/debts/MarkPaidButton'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -20,7 +21,7 @@ export default async function DebtsPage() {
 
   const { data: debtsData } = await supabase
     .from('debts')
-    .select('id, user_id, name, monthly_amount, currency, monthly_amount_crc, total_installments, paid_installments, start_date, payment_account_id, is_active, created_at')
+    .select('id, user_id, name, monthly_amount, currency, monthly_amount_crc, total_installments, paid_installments, start_date, next_due_date, due_day, payment_account_id, is_active, created_at')
     .eq('user_id', user.id)
     .order('is_active', { ascending: false })
     .order('created_at', { ascending: true })
@@ -110,6 +111,8 @@ export default async function DebtsPage() {
                           {debt.paid_installments}/{debt.total_installments} cuotas
                         </span>
                         <span>Liberación: {formatDate(debt.releaseDate)}</span>
+                        {debt.is_active && debt.next_due_date && <span>Próxima cuota: {formatDate(debt.next_due_date)}</span>}
+                        {debt.is_active && !debt.next_due_date && <span>Vencimiento sin configurar</span>}
                       </div>
                       <div className="progress-track max-w-md">
                         <div
@@ -125,12 +128,16 @@ export default async function DebtsPage() {
                     </div>
                     {debt.is_active && (
                       <div className="flex shrink-0 flex-wrap gap-2">
-                        <MarkPaidButton
-                          debtId={debt.id}
-                          debtName={debt.name}
-                          paidInstallments={debt.paid_installments}
-                          totalInstallments={debt.total_installments}
-                        />
+                        {debt.next_due_date ? (
+                          <MarkPaidButton
+                            debtId={debt.id}
+                            debtName={debt.name}
+                            paidInstallments={debt.paid_installments}
+                            totalInstallments={debt.total_installments}
+                          />
+                        ) : (
+                          <ConfigureDebtDueDateButton debtId={debt.id} debtName={debt.name} />
+                        )}
                         <DeleteDebtButton
                           debtId={debt.id}
                           debtName={debt.name}

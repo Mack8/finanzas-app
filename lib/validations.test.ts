@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { categorySchema, loginSchema, registerSchema, savingsFundSchema, transactionSchema } from './validations'
+import { categorySchema, debtSchema, loginSchema, registerSchema, savingsFundSchema, transactionSchema } from './validations'
 
 describe('loginSchema', () => {
   it('accepts valid credentials', () => {
@@ -93,6 +93,30 @@ describe('transactionSchema', () => {
 
     expect(result.success).toBe(false)
     expect(result.error?.issues[0].path).toContain('amount')
+  })
+})
+
+describe('debtSchema next due date', () => {
+  const validDebt = {
+    name: 'Préstamo',
+    monthlyAmount: '25000',
+    currency: 'CRC',
+    totalInstallments: '12',
+    startDate: '2026-10-01',
+    nextDueDate: '2026-11-01',
+  }
+
+  it('requires the exact date of the next installment', () => {
+    expect(debtSchema.safeParse(validDebt).success).toBe(true)
+    const result = debtSchema.safeParse({ ...validDebt, nextDueDate: '' })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].path).toContain('nextDueDate')
+  })
+
+  it('rejects impossible calendar dates', () => {
+    const result = debtSchema.safeParse({ ...validDebt, nextDueDate: '2026-02-30' })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].path).toContain('nextDueDate')
   })
 })
 
