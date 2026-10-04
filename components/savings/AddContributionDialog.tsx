@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { getTodayCR } from '@/lib/format'
 import { addContributionAction, type ContributionActionState } from '@/app/(dashboard)/savings/actions'
 
 const selectClassName =
@@ -49,7 +50,7 @@ export function AddContributionDialog({ fundId, fundName, latestExchangeRate }: 
                 id={`contrib-date-${fundId}`}
                 name="date"
                 type="date"
-                defaultValue={new Date().toISOString().slice(0, 10)}
+                defaultValue={getTodayCR()}
                 required
               />
               {state.fieldErrors?.date?.[0] && <p className="text-sm text-danger">{state.fieldErrors.date[0]}</p>}

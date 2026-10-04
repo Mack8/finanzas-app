@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { getTodayCR } from '@/lib/format'
 import { saveIncomeConfigAction, type IncomeConfigState } from '@/app/(dashboard)/settings/actions'
 import type { IncomeConfig } from '@/types/domain'
 
@@ -19,7 +20,7 @@ const selectClassName =
 
 export function IncomeConfigForm({ currentConfig }: Props) {
   const [state, formAction, pending] = useActionState(saveIncomeConfigAction, initialState)
-  const today = new Date().toISOString().slice(0, 10)
+  const today = getTodayCR()
 
   return (
     <Card>

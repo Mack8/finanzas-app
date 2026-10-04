@@ -29,6 +29,12 @@ export function formatDate(date: string) {
   return dateFormatter.format(new Date(`${date}T00:00:00`))
 }
 
+export function getTodayCR(date: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Costa_Rica', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(date)
+}
+
 export function formatPercent(value: number | null, digits = 1): string {
   if (value === null || Number.isNaN(value)) return '—'
   return `${value.toFixed(digits)}%`

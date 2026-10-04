@@ -46,8 +46,9 @@ export function TransactionFilters({ categories, defaultMonth }: Props) {
   return (
     <div className="flex flex-wrap gap-3">
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted-foreground">Mes</label>
+        <label htmlFor="filter-month" className="text-xs text-muted-foreground">Mes</label>
         <input
+          id="filter-month"
           type="month"
           className={selectClassName}
           value={currentMonth}
@@ -56,8 +57,9 @@ export function TransactionFilters({ categories, defaultMonth }: Props) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted-foreground">Categoría</label>
+        <label htmlFor="filter-category" className="text-xs text-muted-foreground">Categoría</label>
         <select
+          id="filter-category"
           className={selectClassName}
           value={currentCategoryId}
           onChange={e => updateParam('categoryId', e.target.value)}
@@ -72,8 +74,9 @@ export function TransactionFilters({ categories, defaultMonth }: Props) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted-foreground">Tipo</label>
+        <label htmlFor="filter-type" className="text-xs text-muted-foreground">Tipo</label>
         <select
+          id="filter-type"
           className={selectClassName}
           value={currentType}
           onChange={e => updateParam('type', e.target.value)}
@@ -86,8 +89,9 @@ export function TransactionFilters({ categories, defaultMonth }: Props) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted-foreground">Moneda</label>
+        <label htmlFor="filter-currency" className="text-xs text-muted-foreground">Moneda</label>
         <select
+          id="filter-currency"
           className={selectClassName}
           value={currentCurrency}
           onChange={e => updateParam('currency', e.target.value)}

@@ -27,8 +27,9 @@ export function MonthPicker({ defaultMonth }: Props) {
 
   return (
     <div className="flex items-center gap-2">
-      <label className="text-sm text-muted-foreground">Mes</label>
+      <label htmlFor="report-month" className="text-sm text-muted-foreground">Mes</label>
       <input
+        id="report-month"
         type="month"
         className={inputClassName}
         value={currentMonth}
