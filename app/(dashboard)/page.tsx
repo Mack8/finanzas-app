@@ -77,7 +77,7 @@ export default async function DashboardPage() {
         ) : null}
       />
       <DashboardCockpit model={model} savingsFunds={savingsResult.data ?? []} debts={debts} />
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <BudgetList items={summary.budgetProgress} />
         <div className="rounded-2xl border bg-card p-5 sm:p-6">
           <h2 className="font-semibold">Entendé tus movimientos</h2>

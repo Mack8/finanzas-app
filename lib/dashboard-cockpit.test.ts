@@ -53,6 +53,15 @@ describe('cockpit financial decisions', () => {
     expect(result.evidence.pace).toContain('Sin movimientos')
   })
 
+  it('prioritizes recording money when an empty ledger already has planned commitments', () => {
+    const result = cockpit({ ledgerIncomeCRC: 0, availableCRC: 0, expensesCRC: 0 }, 0)
+    expect(result.position.state).toBe('incomplete')
+    expect(result.position.safeCRC).toBe(-50000)
+    expect(result.position.dailySafeCRC).toBeLessThanOrEqual(0)
+    expect(result.action.href).toBe('/transactions')
+    expect(result.action.title).toContain('Registrá')
+  })
+
   it('guides missing income configuration to settings without inventing a projection', () => {
     const result = cockpit({ salaryIncomeCRC: null })
     expect(result.position.projectedCRC).toBeNull()

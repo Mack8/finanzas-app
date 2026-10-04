@@ -23,7 +23,7 @@ export function FinancialStateHero({ position }: { position: FinancialPosition }
         )}>{label}</h2>
         <p className="rounded-full border px-3 py-1 text-xs text-muted-foreground">Horizonte: fin de mes</p>
       </div>
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground">Margen seguro</p>
           <p className={cn('mt-2 break-words font-mono text-3xl font-bold tracking-tight tabular-nums sm:text-5xl', position.safeCRC < 0 && 'text-danger')}>

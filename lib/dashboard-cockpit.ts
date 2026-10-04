@@ -29,7 +29,7 @@ export function buildCockpit({ cashFlow, transactionCount, dayOfMonth, daysInMon
     pendingCommitmentsCRC: cashFlow.unpaidDebtsMonthlyCRC + cashFlow.pendingPlannedContributionsCRC,
     futureIncomeCRC, horizonDays, projectedExpensesCRC: remainingExpensesCRC,
   })
-  if (transactionCount === 0 && position.state !== 'risk') position.state = 'incomplete'
+  if (transactionCount === 0) position.state = 'incomplete'
   if (position.safeCRC === 0 && position.state === 'stable') position.state = 'attention'
 
   let action: CockpitModel['action']
