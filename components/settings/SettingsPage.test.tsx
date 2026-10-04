@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
+import userEvent from '@testing-library/user-event'
 import SettingsPage from '@/app/(dashboard)/settings/page'
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({
@@ -19,7 +20,9 @@ vi.mock('@/app/(dashboard)/settings/actions', () => ({
 }))
 
 it.each([undefined, 'invalid', 'income'])('muestra ingresos sin categorías ni incidencias para %s', async section => {
+  const user = userEvent.setup()
   render(await SettingsPage({ searchParams: Promise.resolve({ section }) }))
+  await user.click(screen.getByRole('button', { name: 'Configurar ingresos' }))
   expect(screen.getByLabelText('Monto primer pago')).toBeInTheDocument()
   expect(screen.queryByText('Categorías existentes')).not.toBeInTheDocument()
   expect(screen.queryByText('Correos con problemas')).not.toBeInTheDocument()

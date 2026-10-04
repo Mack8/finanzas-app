@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { useClosingActionState } from '@/components/ui/use-closing-action-state'
+import { useActionStateFormSubmit, useClosingActionState } from '@/components/ui/use-closing-action-state'
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog'
@@ -26,11 +26,17 @@ export function AddContributionDialog({ fundId, fundName, latestExchangeRate }: 
   const [open, setOpen] = useState(false)
   const [formKey, setFormKey] = useState(0)
   const boundAction = useMemo(() => addContributionAction.bind(null, fundId), [fundId])
-  const [state, formAction, pending] = useClosingActionState(boundAction, initialState, setOpen)
+  const closeAwareSetOpen = useCallback((next: boolean) => {
+    setOpen(next)
+    if (!next) setFormKey(key => key + 1)
+  }, [])
+  const [state, formAction, pending, resetActionState] = useClosingActionState(boundAction, initialState, closeAwareSetOpen)
+  const handleSubmit = useActionStateFormSubmit(formAction)
 
   function handleOpenChange(next: boolean) {
-    if (!next) setFormKey(k => k + 1)
-    setOpen(next)
+    if (pending && !next) return
+    if (!next) resetActionState()
+    closeAwareSetOpen(next)
   }
 
   return (
@@ -42,7 +48,7 @@ export function AddContributionDialog({ fundId, fundName, latestExchangeRate }: 
         <DialogHeader>
           <DialogTitle>Aporte a {fundName}</DialogTitle>
         </DialogHeader>
-        <form key={formKey} action={formAction} className="space-y-4">
+        <form key={formKey} onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor={`contrib-date-${fundId}`}>Fecha</Label>

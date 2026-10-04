@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeMonthsToGoal, computeSavingsProgress } from './savings'
+import { computeMonthsToGoal, computeSavingsProgress, getSavingsPace } from './savings'
 import type { SavingsFund } from '@/types/domain'
 
 const baseFund: SavingsFund = {
@@ -89,5 +89,34 @@ describe('computeSavingsProgress', () => {
     const zeroGoal = { ...baseFund, goal_amount_crc: 0 }
     const result = computeSavingsProgress(zeroGoal)
     expect(result.progressPercent).toBe(0)
+  })
+})
+
+describe('getSavingsPace', () => {
+  const paceFund = {
+    ...baseFund,
+    goal_amount_crc: 100000,
+    created_at: '2026-01-01T12:00:00.000Z',
+    target_date: '2026-11-01',
+  }
+
+  it('marks a fund as on track when its saved percentage meets the expected pace', () => {
+    expect(getSavingsPace({ ...paceFund, current_amount_crc: 70000 }, new Date('2026-06-01T12:00:00Z'))).toBe('on-track')
+  })
+
+  it('marks a fund with a moderate schedule gap as slightly behind', () => {
+    expect(getSavingsPace({ ...paceFund, current_amount_crc: 35000 }, new Date('2026-06-01T12:00:00Z'))).toBe('slightly-behind')
+  })
+
+  it('marks a fund far behind its time-based target as behind', () => {
+    expect(getSavingsPace({ ...paceFund, current_amount_crc: 20000 }, new Date('2026-06-01T12:00:00Z'))).toBe('behind')
+  })
+
+  it('marks a reached goal as completed', () => {
+    expect(getSavingsPace({ ...paceFund, current_amount_crc: 100000 }, new Date('2026-06-01T12:00:00Z'))).toBe('completed')
+  })
+
+  it('marks an unfinished goal as behind after its target date', () => {
+    expect(getSavingsPace({ ...paceFund, current_amount_crc: 95000 }, new Date('2026-11-02T12:00:00Z'))).toBe('behind')
   })
 })

@@ -4,7 +4,7 @@ import { CreateAccountForm } from '@/components/cards/CreateAccountForm'
 import { DeleteAccountButton } from '@/components/cards/DeleteAccountButton'
 import { EditAccountDialog } from '@/components/cards/EditAccountDialog'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { CreationPanel } from '@/components/layout/CreationPanel'
+import { FormDialog } from '@/components/layout/FormDialog'
 import { KpiCard } from '@/components/layout/KpiCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/server'
@@ -51,7 +51,9 @@ export default async function CardsPage() {
         description="Administrá tus tarjetas de crédito y cuentas bancarias."
       />
 
-      <CreationPanel label="Agregar cuenta"><CreateAccountForm /></CreationPanel>
+      <FormDialog triggerLabel="Agregar cuenta" title="Nueva cuenta" description="Registrá una tarjeta de crédito o una cuenta bancaria para asociarla a tus movimientos.">
+        <CreateAccountForm />
+      </FormDialog>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <KpiCard

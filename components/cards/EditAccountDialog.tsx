@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { useClosingActionState } from '@/components/ui/use-closing-action-state'
+import { useActionStateFormSubmit, useClosingActionState } from '@/components/ui/use-closing-action-state'
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog'
@@ -22,11 +22,17 @@ export function EditAccountDialog({ account }: Props) {
   const [open, setOpen] = useState(false)
   const [formKey, setFormKey] = useState(0)
   const boundAction = useMemo(() => updatePaymentAccountAction.bind(null, account.id), [account.id])
-  const [state, formAction, pending] = useClosingActionState(boundAction, initialState, setOpen)
+  const closeAwareSetOpen = useCallback((next: boolean) => {
+    setOpen(next)
+    if (!next) setFormKey(key => key + 1)
+  }, [])
+  const [state, formAction, pending, resetActionState] = useClosingActionState(boundAction, initialState, closeAwareSetOpen)
+  const handleSubmit = useActionStateFormSubmit(formAction)
 
   function handleOpenChange(next: boolean) {
-    if (!next) setFormKey(k => k + 1)
-    setOpen(next)
+    if (pending && !next) return
+    if (!next) resetActionState()
+    closeAwareSetOpen(next)
   }
 
   return (
@@ -36,7 +42,7 @@ export function EditAccountDialog({ account }: Props) {
         <DialogHeader>
           <DialogTitle>Editar cuenta</DialogTitle>
         </DialogHeader>
-        <form key={formKey} action={formAction} className="space-y-4">
+        <form key={formKey} onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor={`edit-name-${account.id}`}>Nombre</Label>
             <Input id={`edit-name-${account.id}`} name="name" type="text" defaultValue={account.name} required />
@@ -80,8 +86,8 @@ export function EditAccountDialog({ account }: Props) {
             </div>
           </div>
 
-          {state.message && (
-            <p aria-live="polite" className={state.status === 'success' ? 'text-sm text-success' : 'text-sm text-danger'}>{state.message}</p>
+          {state.status === 'error' && state.message && (
+            <p aria-live="polite" className="text-sm text-danger">{state.message}</p>
           )}
 
           <DialogFooter showCloseButton>

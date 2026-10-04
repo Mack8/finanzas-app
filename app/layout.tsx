@@ -21,7 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${satoshi.variable} font-sans`}>
+      <body className={`${satoshi.variable} font-sans calm-ledger`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

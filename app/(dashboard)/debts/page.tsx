@@ -4,7 +4,7 @@ import { CreateDebtForm } from '@/components/debts/CreateDebtForm'
 import { DeleteDebtButton } from '@/components/debts/DeleteDebtButton'
 import { MarkPaidButton } from '@/components/debts/MarkPaidButton'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { CreationPanel } from '@/components/layout/CreationPanel'
+import { FormDialog } from '@/components/layout/FormDialog'
 import { KpiCard } from '@/components/layout/KpiCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getLatestExchangeRate } from '@/lib/bccr/exchange-rate'
@@ -43,7 +43,9 @@ export default async function DebtsPage() {
         description="Seguimiento de cuotas fijas y compromisos de pago."
       />
 
-      <CreationPanel label="Registrar deuda"><CreateDebtForm latestExchangeRate={latestExchangeRate} /></CreationPanel>
+      <FormDialog triggerLabel="Registrar deuda" title="Nueva deuda" description="Registrá cuotas fijas: leasing, tarjetas a plazo, préstamos.">
+        <CreateDebtForm latestExchangeRate={latestExchangeRate} />
+      </FormDialog>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <KpiCard

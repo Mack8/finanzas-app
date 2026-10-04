@@ -31,9 +31,11 @@ export function DeleteTransactionDialog({ transactionId, description }: Props) {
     () => deleteTransactionAction.bind(null, transactionId),
     [transactionId]
   )
-  const [state, formAction, pending] = useClosingActionState(boundAction, initialState, setOpen)
+  const [state, formAction, pending, resetActionState] = useClosingActionState(boundAction, initialState, setOpen)
 
   function handleOpenChange(next: boolean) {
+    if (pending && !next) return
+    if (!next) resetActionState()
     if (!next) setFormKey(k => k + 1)
     setOpen(next)
   }

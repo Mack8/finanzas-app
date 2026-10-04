@@ -1,11 +1,13 @@
 'use client'
 
-import { useActionState, useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DialogFooter } from '@/components/ui/dialog'
+import { useFormDialogControls } from '@/components/layout/form-dialog-context'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createPaymentAccountAction, type AccountActionState } from '@/app/(dashboard)/cards/actions'
+import { useActionStateFormSubmit, useClosingActionState } from '@/components/ui/use-closing-action-state'
 
 const initialState: AccountActionState = { status: 'idle' }
 
@@ -13,21 +15,13 @@ const selectClassName =
   'flex h-8 w-full rounded-lg border border-input bg-background px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50'
 
 export function CreateAccountForm() {
-  const [state, formAction, pending] = useActionState(createPaymentAccountAction, initialState)
-  const formRef = useRef<HTMLFormElement>(null)
-
-  useEffect(() => {
-    if (state.status === 'success') formRef.current?.reset()
-  }, [state.status])
+  const { setOpen, setPending } = useFormDialogControls()
+  const [state, formAction, pending] = useClosingActionState(createPaymentAccountAction, initialState, setOpen)
+  const handleSubmit = useActionStateFormSubmit(formAction)
+  useEffect(() => setPending(pending), [pending, setPending])
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Nueva cuenta</CardTitle>
-        <CardDescription>Registrá tarjetas de crédito o cuentas bancarias para asociarlas a tus transacciones.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form ref={formRef} action={formAction} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Nombre</Label>
             <Input id="name" name="name" type="text" placeholder="Ej. BAC Visa, Cuenta corriente" required />
@@ -71,17 +65,17 @@ export function CreateAccountForm() {
             </div>
           </div>
 
-          {state.message && (
-            <p aria-live="polite" className={state.status === 'success' ? 'text-sm text-success' : 'text-sm text-danger'}>
+          {state.status === 'error' && state.message && (
+            <p aria-live="polite" className="text-sm text-danger">
               {state.message}
             </p>
           )}
 
-          <Button type="submit" className="w-full md:w-auto" disabled={pending}>
-            {pending ? 'Guardando...' : 'Guardar cuenta'}
-          </Button>
+          <DialogFooter>
+            <Button type="submit" className="w-full sm:w-auto" disabled={pending}>
+              {pending ? 'Guardando...' : 'Guardar cuenta'}
+            </Button>
+          </DialogFooter>
         </form>
-      </CardContent>
-    </Card>
   )
 }

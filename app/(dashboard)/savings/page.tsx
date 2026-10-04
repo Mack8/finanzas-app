@@ -3,13 +3,15 @@ import { PiggyBank, Target, CheckCircle2 } from 'lucide-react'
 import { AddContributionDialog } from '@/components/savings/AddContributionDialog'
 import { CreateSavingsFundForm } from '@/components/savings/CreateSavingsFundForm'
 import { DeleteContributionButton } from '@/components/savings/DeleteContributionButton'
+import { SavingsGoalProgress } from '@/components/savings/SavingsGoalProgress'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { CreationPanel } from '@/components/layout/CreationPanel'
+import { FormDialog } from '@/components/layout/FormDialog'
 import { KpiCard } from '@/components/layout/KpiCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getLatestExchangeRate } from '@/lib/bccr/exchange-rate'
 import { formatDate, formatMoney } from '@/lib/format'
 import { computeSavingsProgress } from '@/lib/savings'
+import { chooseBalancedFinancialColor } from '@/lib/financial-colors'
 import { createClient } from '@/lib/supabase/server'
 import type { SavingsContribution, SavingsFund } from '@/types/domain'
 
@@ -60,7 +62,12 @@ export default async function SavingsPage() {
         description="Fondos de ahorro con metas y seguimiento de aportes."
       />
 
-      <CreationPanel label="Crear fondo"><CreateSavingsFundForm latestExchangeRate={latestExchangeRate} /></CreationPanel>
+      <FormDialog triggerLabel="Crear fondo de ahorro" title="Nuevo fondo de ahorro" description="Definí una meta, un plazo y un aporte mensual estimado.">
+        <CreateSavingsFundForm
+          latestExchangeRate={latestExchangeRate}
+          suggestedColor={chooseBalancedFinancialColor(funds.map(fund => fund.color).filter((color): color is string => typeof color === 'string'))}
+        />
+      </FormDialog>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <KpiCard
@@ -97,7 +104,6 @@ export default async function SavingsPage() {
             </Card>
           ) : (
             progressFunds.map(fund => {
-              const barWidth = `${Math.min(fund.progressPercent, 100)}%`
               const fundContribs = contribsByFund[fund.id] ?? []
 
               return (
@@ -129,32 +135,7 @@ export default async function SavingsPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-sm">
-                        <span className="font-semibold tabular-nums">{formatMoney(fund.current_amount_crc, 'CRC')}</span>
-                        <span className="tabular-nums text-muted-foreground">
-                          {formatMoney(fund.goal_amount_crc, 'CRC')} ({fund.progressPercent.toFixed(0)}%)
-                        </span>
-                      </div>
-                      <div
-                        role="progressbar"
-                        aria-valuenow={Math.min(Math.round(fund.progressPercent), 100)}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-label={`Progreso ${fund.name}`}
-                        className="progress-track"
-                      >
-                        <div
-                          className="progress-fill"
-                          style={{ width: barWidth, backgroundColor: fund.color ?? '#2563eb' }}
-                        />
-                      </div>
-                      {fund.monthsToGoal !== null && fund.monthsToGoal > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          ~{fund.monthsToGoal} {fund.monthsToGoal === 1 ? 'mes' : 'meses'} para la meta con aporte mensual actual
-                        </p>
-                      )}
-                    </div>
+                    <SavingsGoalProgress fund={fund} />
 
                     {fundContribs.length > 0 && (
                       <div className="space-y-2 border-t border-border pt-3">

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { categorySchema, loginSchema, registerSchema, transactionSchema } from './validations'
+import { categorySchema, loginSchema, registerSchema, savingsFundSchema, transactionSchema } from './validations'
 
 describe('loginSchema', () => {
   it('accepts valid credentials', () => {
@@ -121,6 +121,17 @@ describe('categorySchema', () => {
     expect(result.success).toBe(true)
   })
 
+  it('accepts an omitted color so the server can assign one', () => {
+    const result = categorySchema.safeParse({
+      name: 'Salud',
+      type: 'variable_expense',
+      monthlyBudgetAmount: '',
+      monthlyBudgetCurrency: undefined,
+    })
+
+    expect(result.success).toBe(true)
+  })
+
   it('rejects invalid colors', () => {
     const result = categorySchema.safeParse({
       name: 'Mascotas',
@@ -130,6 +141,29 @@ describe('categorySchema', () => {
       monthlyBudgetCurrency: undefined,
     })
 
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].path).toContain('color')
+  })
+})
+
+describe('savingsFundSchema color', () => {
+  const validFund = {
+    name: 'Vacaciones',
+    goalAmount: '100000',
+    goalCurrency: 'CRC',
+    targetDate: '2027-01-01',
+  }
+
+  it('accepts an omitted color so the server can assign one', () => {
+    expect(savingsFundSchema.safeParse(validFund).success).toBe(true)
+  })
+
+  it('accepts a valid hex color', () => {
+    expect(savingsFundSchema.safeParse({ ...validFund, color: '#86a789' }).success).toBe(true)
+  })
+
+  it('rejects malformed colors', () => {
+    const result = savingsFundSchema.safeParse({ ...validFund, color: 'green' })
     expect(result.success).toBe(false)
     expect(result.error?.issues[0].path).toContain('color')
   })

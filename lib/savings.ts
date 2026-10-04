@@ -32,3 +32,24 @@ export function computeSavingsProgress(
 
   return { ...fund, progressPercent, monthsToGoal }
 }
+
+export type SavingsPace = 'on-track' | 'slightly-behind' | 'behind' | 'completed'
+
+export function getSavingsPace(fund: SavingsFund, asOf = new Date()): SavingsPace {
+  const progress = fund.goal_amount_crc > 0
+    ? Math.min(Math.max((fund.current_amount_crc / fund.goal_amount_crc) * 100, 0), 100)
+    : 0
+
+  if (!fund.is_active || progress >= 100) return 'completed'
+
+  const start = Date.parse(fund.created_at)
+  const target = Date.parse(`${fund.target_date}T23:59:59.999Z`)
+  if (!Number.isFinite(start) || !Number.isFinite(target) || target <= start) return 'on-track'
+  if (asOf.getTime() > target) return 'behind'
+
+  const elapsedPercent = Math.min(Math.max(((asOf.getTime() - start) / (target - start)) * 100, 0), 100)
+  const gap = elapsedPercent - progress
+  if (gap <= 10) return 'on-track'
+  if (gap <= 25) return 'slightly-behind'
+  return 'behind'
+}

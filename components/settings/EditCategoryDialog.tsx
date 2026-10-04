@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { useClosingActionState } from '@/components/ui/use-closing-action-state'
+import { useActionStateFormSubmit, useClosingActionState } from '@/components/ui/use-closing-action-state'
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,8 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PaletteColorField } from '@/components/ui/PaletteColorField'
+import { FINANCIAL_COLOR_PALETTE } from '@/lib/financial-colors'
 import {
   updateCategoryAction,
   type CategoryActionState,
@@ -35,16 +37,26 @@ const initialState: CategoryActionState = { status: 'idle' }
 export function EditCategoryDialog({ category }: { category: CategoryData }) {
   const [open, setOpen] = useState(false)
   const [formKey, setFormKey] = useState(0)
+  const [color, setColor] = useState(category.color)
 
   const boundAction = useMemo(
     () => updateCategoryAction.bind(null, category.id),
     [category.id]
   )
-  const [state, formAction, pending] = useClosingActionState(boundAction, initialState, setOpen)
+  const closeAwareSetOpen = useCallback((next: boolean) => {
+    setOpen(next)
+    if (!next) {
+      setFormKey(key => key + 1)
+      setColor(category.color)
+    }
+  }, [category.color])
+  const [state, formAction, pending, resetActionState] = useClosingActionState(boundAction, initialState, closeAwareSetOpen)
+  const handleSubmit = useActionStateFormSubmit(formAction)
 
   function handleOpenChange(next: boolean) {
-    if (!next) setFormKey(k => k + 1)
-    setOpen(next)
+    if (pending && !next) return
+    if (!next) resetActionState()
+    closeAwareSetOpen(next)
   }
 
   return (
@@ -56,7 +68,7 @@ export function EditCategoryDialog({ category }: { category: CategoryData }) {
         <DialogHeader>
           <DialogTitle>Editar categoría</DialogTitle>
         </DialogHeader>
-        <form key={formKey} action={formAction} className="space-y-4">
+        <form key={formKey} onSubmit={handleSubmit} className="space-y-4">
 
           <div className="space-y-2">
             <Label htmlFor={`cat-name-${category.id}`}>Nombre</Label>
@@ -93,12 +105,12 @@ export function EditCategoryDialog({ category }: { category: CategoryData }) {
 
             <div className="space-y-2">
               <Label htmlFor={`cat-color-${category.id}`}>Color</Label>
-              <Input
+              <PaletteColorField
                 id={`cat-color-${category.id}`}
                 name="color"
-                type="color"
-                defaultValue={category.color}
-                className="h-10 w-full cursor-pointer p-1"
+                value={color}
+                onValueChange={setColor}
+                options={FINANCIAL_COLOR_PALETTE}
               />
               {state.fieldErrors?.color?.[0] && (
                 <p className="text-sm text-danger">{state.fieldErrors.color[0]}</p>

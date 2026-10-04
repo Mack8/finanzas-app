@@ -20,9 +20,11 @@ export function DeleteContributionButton({ contributionId, amountLabel }: Props)
   const [open, setOpen] = useState(false)
   const [formKey, setFormKey] = useState(0)
   const boundAction = useMemo(() => deleteContributionAction.bind(null, contributionId), [contributionId])
-  const [state, formAction, pending] = useClosingActionState(boundAction, initialState, setOpen)
+  const [state, formAction, pending, resetActionState] = useClosingActionState(boundAction, initialState, setOpen)
 
   function handleOpenChange(next: boolean) {
+    if (pending && !next) return
+    if (!next) resetActionState()
     if (!next) setFormKey(k => k + 1)
     setOpen(next)
   }

@@ -13,23 +13,19 @@ function Form() {
   </form>
 }
 
-it('oculta el formulario inicialmente y conserva borrador y error al plegarlo', async () => {
+it('abre un diálogo accesible y descarta borrador y error al cerrarlo y reabrirlo', async () => {
   const user = userEvent.setup()
-  render(<CreationPanel label="Agregar cuenta"><Form /></CreationPanel>)
+  render(<CreationPanel label="Agregar cuenta" title="Nueva cuenta" description="Datos de la cuenta"><Form /></CreationPanel>)
   const trigger = screen.getByRole('button', { name: 'Agregar cuenta' })
   expect(trigger).toHaveAttribute('aria-expanded', 'false')
   expect(screen.queryByRole('textbox', { name: 'Nombre' })).not.toBeInTheDocument()
   await user.click(trigger)
-  expect(trigger).toHaveAttribute('aria-expanded', 'true')
-  const panel = document.getElementById(trigger.getAttribute('aria-controls')!)
-  expect(panel).toBeVisible()
+  expect(screen.getByRole('dialog', { name: 'Nueva cuenta' })).toBeInTheDocument()
   await user.type(screen.getByRole('textbox', { name: 'Nombre' }), 'Cuenta de prueba')
   await user.click(screen.getByRole('button', { name: 'Guardar' }))
   expect(screen.getByRole('alert')).toHaveTextContent('Revisá el monto')
-  expect(trigger).toHaveAttribute('aria-expanded', 'true')
+  await user.click(screen.getByRole('button', { name: 'Close' }))
   await user.click(trigger)
-  expect(panel).not.toBeVisible()
-  await user.click(trigger)
-  expect(screen.getByRole('textbox', { name: 'Nombre' })).toHaveValue('Cuenta de prueba')
-  expect(screen.getByRole('alert')).toHaveTextContent('Revisá el monto')
+  expect(screen.getByRole('textbox', { name: 'Nombre' })).toHaveValue('')
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 })

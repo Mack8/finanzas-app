@@ -1,11 +1,15 @@
 'use client'
 
-import { useActionState, useEffect, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DialogFooter } from '@/components/ui/dialog'
+import { useFormDialogControls } from '@/components/layout/form-dialog-context'
+import { useActionStateFormSubmit, useClosingActionState } from '@/components/ui/use-closing-action-state'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createSavingsFundAction, type FundActionState } from '@/app/(dashboard)/savings/actions'
+import { FINANCIAL_COLOR_PALETTE, type FinancialPaletteColor } from '@/lib/financial-colors'
+import { PaletteColorField } from '@/components/ui/PaletteColorField'
 
 const selectClassName =
   'flex h-8 w-full rounded-lg border border-input bg-background px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50'
@@ -14,24 +18,18 @@ const initialState: FundActionState = { status: 'idle' }
 
 type Props = {
   latestExchangeRate: { usd_to_crc: number } | null
+  suggestedColor: FinancialPaletteColor
 }
 
-export function CreateSavingsFundForm({ latestExchangeRate }: Props) {
-  const [state, formAction, pending] = useActionState(createSavingsFundAction, initialState)
-  const formRef = useRef<HTMLFormElement>(null)
-
-  useEffect(() => {
-    if (state.status === 'success') formRef.current?.reset()
-  }, [state.status])
+export function CreateSavingsFundForm({ latestExchangeRate, suggestedColor }: Props) {
+  const { setOpen, setPending } = useFormDialogControls()
+  const [state, formAction, pending] = useClosingActionState(createSavingsFundAction, initialState, setOpen)
+  const handleSubmit = useActionStateFormSubmit(formAction)
+  const [color, setColor] = useState<FinancialPaletteColor>(suggestedColor)
+  useEffect(() => setPending(pending), [pending, setPending])
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Nuevo fondo de ahorro</CardTitle>
-        <CardDescription>Definí una meta, un plazo y un aporte mensual estimado.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form ref={formRef} action={formAction} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="fund-name">Nombre</Label>
             <Input id="fund-name" name="name" type="text" placeholder="Ej. Emergencia, Vacaciones" required />
@@ -74,8 +72,14 @@ export function CreateSavingsFundForm({ latestExchangeRate }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="fund-color">Color</Label>
-            <Input id="fund-color" name="color" type="color" defaultValue="#3b82f6" className="h-10 w-full cursor-pointer p-1" />
+            <Label htmlFor="fund-color">Color del fondo</Label>
+            <PaletteColorField
+              id="fund-color"
+              name="color"
+              value={color}
+              onValueChange={nextColor => setColor(nextColor as FinancialPaletteColor)}
+              options={FINANCIAL_COLOR_PALETTE}
+            />
           </div>
 
           {latestExchangeRate && (
@@ -88,11 +92,11 @@ export function CreateSavingsFundForm({ latestExchangeRate }: Props) {
             </p>
           )}
 
-          <Button type="submit" disabled={pending}>
-            {pending ? 'Guardando...' : 'Crear fondo'}
-          </Button>
+          <DialogFooter>
+            <Button type="submit" className="w-full sm:w-auto" disabled={pending}>
+              {pending ? 'Guardando...' : 'Crear fondo'}
+            </Button>
+          </DialogFooter>
         </form>
-      </CardContent>
-    </Card>
   )
 }

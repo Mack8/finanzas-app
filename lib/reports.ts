@@ -1,4 +1,5 @@
 import { roundMoney } from '@/lib/transactions'
+import { formatMoney } from '@/lib/format'
 import type { CategoryType, TransactionType } from '@/types/database'
 
 export type CategoryExpense = {
@@ -22,6 +23,27 @@ export type TransactionTypeBreakdown = {
   label: string
   totalCRC: number
   count: number
+}
+
+export function getPreviousMonthKey(month: string): string {
+  const [year, monthNumber] = month.split('-').map(Number)
+  const previous = new Date(Date.UTC(year, monthNumber - 2, 1))
+  return `${previous.getUTCFullYear()}-${String(previous.getUTCMonth() + 1).padStart(2, '0')}`
+}
+
+export function getMonthOverMonthLabel(current: number, previous: number | null): string {
+  if (previous === null) return 'Sin datos del mes anterior'
+
+  const difference = roundMoney(current - previous)
+  if (difference === 0) return 'Sin cambio vs. mes anterior'
+
+  const direction = difference > 0 ? 'más' : 'menos'
+  if (previous <= 0) {
+    return `Cambio de ${formatMoney(Math.abs(difference), 'CRC')} vs. mes anterior`
+  }
+
+  const percent = Math.round((Math.abs(difference) / previous) * 100)
+  return `${percent}% ${direction} que el mes anterior`
 }
 
 const TYPE_LABELS: Record<TransactionType, string> = {
@@ -147,6 +169,8 @@ export function computeReportMonthSummary(transactions: TransactionForMonthly[])
     savings: roundMoney(totals.savings),
     reimbursements: roundMoney(totals.reimbursements),
     netExpenses: roundMoney(totals.expenses - totals.reimbursements),
-    balance: roundMoney(totals.income - totals.expenses - totals.savings),
+    netSavings: roundMoney(totals.income - (totals.expenses - totals.reimbursements)),
+    freeBalance: roundMoney(totals.income - (totals.expenses - totals.reimbursements) - totals.savings),
+    balance: roundMoney(totals.income - (totals.expenses - totals.reimbursements) - totals.savings),
   }
 }

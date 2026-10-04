@@ -4,6 +4,8 @@ import {
   buildMonthlyTotals,
   groupByTransactionType,
   computeReportMonthSummary,
+  getMonthOverMonthLabel,
+  getPreviousMonthKey,
 } from './reports'
 
 // --- groupExpensesByCategory ---
@@ -126,6 +128,28 @@ describe('computeReportMonthSummary', () => {
     expect(summary.expenses).toBe(450)
     expect(summary.reimbursements).toBe(50)
     expect(summary.netExpenses).toBe(400)
-    expect(summary.balance).toBe(450)
+    expect(summary.netSavings).toBe(600)
+    expect(summary.freeBalance).toBe(500)
+    expect(summary.balance).toBe(500)
+  })
+})
+
+describe('getMonthOverMonthLabel', () => {
+  it('does not show a percentage when there is no previous-month data', () => {
+    expect(getMonthOverMonthLabel(120000, null)).toBe('Sin datos del mes anterior')
+  })
+
+  it('reports a percentage change against a positive previous-month value', () => {
+    expect(getMonthOverMonthLabel(35000, 50000)).toBe('30% menos que el mes anterior')
+  })
+
+  it('uses a cash difference instead of a misleading percentage when the previous value is zero', () => {
+    expect(getMonthOverMonthLabel(25000, 0)).toBe('Cambio de ₡25 000,00 vs. mes anterior')
+  })
+})
+
+describe('getPreviousMonthKey', () => {
+  it('moves January to December of the previous year', () => {
+    expect(getPreviousMonthKey('2026-01')).toBe('2025-12')
   })
 })

@@ -10,7 +10,7 @@ const initialState: FormState = { status: 'idle' }
 
 function Harness({ result }: { result: FormState }) {
   const [open, setOpen] = useState(true)
-  const [state, formAction, pending] = useClosingActionState(
+  const [state, formAction, pending, resetActionState] = useClosingActionState(
     async () => result,
     initialState,
     setOpen,
@@ -21,6 +21,7 @@ function Harness({ result }: { result: FormState }) {
       <p>{open ? 'abierto' : 'cerrado'}</p>
       <p data-testid="result">{state.status}</p>
       <button onClick={() => setOpen(true)}>Abrir</button>
+      <button onClick={() => { resetActionState(); setOpen(false) }}>Cerrar</button>
       <form action={formAction}>
         <button type="submit" disabled={pending}>Guardar</button>
       </form>
@@ -69,5 +70,41 @@ describe('useClosingActionState', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar' }))
     await waitFor(() => expect(screen.getByTestId('result')).toHaveTextContent('error'))
     expect(screen.getByText('abierto')).toBeInTheDocument()
+  })
+
+  it('descarta mensajes de error al cerrar y reabrir el formulario', async () => {
+    const user = userEvent.setup()
+    render(<Harness result={{ status: 'error' }} />)
+
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(screen.getByTestId('result')).toHaveTextContent('error'))
+    await user.click(screen.getByRole('button', { name: 'Cerrar' }))
+    await waitFor(() => expect(screen.getByTestId('result')).toHaveTextContent('idle'))
+    await user.click(screen.getByRole('button', { name: 'Abrir' }))
+    expect(screen.getByTestId('result')).toHaveTextContent('idle')
+  })
+
+  it('no resucita el error al cerrar de nuevo un estado ya descartado', async () => {
+    const user = userEvent.setup()
+    render(<Harness result={{ status: 'error' }} />)
+
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(screen.getByTestId('result')).toHaveTextContent('error'))
+    await user.click(screen.getByRole('button', { name: 'Cerrar' }))
+    await user.click(screen.getByRole('button', { name: 'Abrir' }))
+    await user.click(screen.getByRole('button', { name: 'Cerrar' }))
+    await user.click(screen.getByRole('button', { name: 'Abrir' }))
+
+    expect(screen.getByTestId('result')).toHaveTextContent('idle')
+  })
+
+  it('hides a successful action state after the dialog closes', async () => {
+    const user = userEvent.setup()
+    render(<Harness result={{ status: 'success' }} />)
+
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(screen.getByText('cerrado')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'Abrir' }))
+    expect(screen.getByTestId('result')).toHaveTextContent('idle')
   })
 })

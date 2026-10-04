@@ -1,13 +1,15 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { getTodayCR } from '@/lib/format'
 import { saveIncomeConfigAction, type IncomeConfigState } from '@/app/(dashboard)/settings/actions'
 import type { IncomeConfig } from '@/types/domain'
+import { useFormDialogControls } from '@/components/layout/form-dialog-context'
+import { useActionStateFormSubmit, useClosingActionState } from '@/components/ui/use-closing-action-state'
 
 type Props = {
   currentConfig: IncomeConfig | null
@@ -19,19 +21,14 @@ const selectClassName =
   'flex h-9 w-full cursor-pointer rounded-lg border border-input bg-card px-3 py-1.5 text-sm outline-none transition-colors duration-200 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30'
 
 export function IncomeConfigForm({ currentConfig }: Props) {
-  const [state, formAction, pending] = useActionState(saveIncomeConfigAction, initialState)
+  const { setOpen, setPending } = useFormDialogControls()
+  const [state, formAction, pending] = useClosingActionState(saveIncomeConfigAction, initialState, setOpen)
+  const handleSubmit = useActionStateFormSubmit(formAction)
+  useEffect(() => setPending(pending), [pending, setPending])
   const today = getTodayCR()
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Configuración de ingresos</CardTitle>
-        <CardDescription>
-          Configurá lo que esperás recibir en uno o dos pagos. No registra dinero recibido; el historial de configuración se conserva.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form action={formAction} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="firstPaymentAmount">Monto primer pago</Label>
@@ -135,17 +132,17 @@ export function IncomeConfigForm({ currentConfig }: Props) {
             </div>
           </div>
 
-          {state.message && (
-            <p aria-live="polite" className={state.status === 'success' ? 'text-sm text-success' : 'text-sm text-danger'}>
+          {state.status === 'error' && state.message && (
+            <p aria-live="polite" className="text-sm text-danger">
               {state.message}
             </p>
           )}
 
-          <Button type="submit" className="w-full md:w-auto" disabled={pending}>
-            {pending ? 'Guardando...' : 'Guardar configuración'}
-          </Button>
+          <DialogFooter>
+            <Button type="submit" className="w-full sm:w-auto" disabled={pending}>
+              {pending ? 'Guardando...' : 'Guardar configuración'}
+            </Button>
+          </DialogFooter>
         </form>
-      </CardContent>
-    </Card>
   )
 }

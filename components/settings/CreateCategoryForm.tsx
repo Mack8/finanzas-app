@@ -1,11 +1,16 @@
 'use client'
 
-import { useActionState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createCategoryAction, type CategoryActionState } from '@/app/(dashboard)/settings/actions'
+import { useFormDialogControls } from '@/components/layout/form-dialog-context'
+import { FINANCIAL_COLOR_PALETTE, type FinancialPaletteColor } from '@/lib/financial-colors'
+import { PaletteColorField } from '@/components/ui/PaletteColorField'
+import { useActionStateFormSubmit, useClosingActionState } from '@/components/ui/use-closing-action-state'
+import type { CategoryType } from '@/types/database'
 
 const initialState: CategoryActionState = {
   status: 'idle',
@@ -14,26 +19,19 @@ const initialState: CategoryActionState = {
 const selectClassName =
   'flex h-8 w-full rounded-lg border border-input bg-background px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50'
 
-export function CreateCategoryForm() {
-  const [state, formAction, pending] = useActionState(createCategoryAction, initialState)
-  const formRef = useRef<HTMLFormElement>(null)
+export type SuggestedCategoryColors = Record<CategoryType, FinancialPaletteColor>
 
-  useEffect(() => {
-    if (state.status === 'success') {
-      formRef.current?.reset()
-    }
-  }, [state.status])
+export function CreateCategoryForm({ suggestedColors }: { suggestedColors: SuggestedCategoryColors }) {
+  const { setOpen, setPending } = useFormDialogControls()
+  const [state, formAction, pending] = useClosingActionState(createCategoryAction, initialState, setOpen)
+  const handleSubmit = useActionStateFormSubmit(formAction)
+  const [categoryType, setCategoryType] = useState<CategoryType>('variable_expense')
+  const [color, setColor] = useState<FinancialPaletteColor>(suggestedColors.variable_expense)
+  const manuallySelectedColor = useRef(false)
+  useEffect(() => setPending(pending), [pending, setPending])
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Nueva categoría</CardTitle>
-        <CardDescription>
-          Creá categorías personalizadas para ingresos, gastos o ahorro.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form ref={formRef} action={formAction} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Nombre</Label>
             <Input
@@ -51,7 +49,17 @@ export function CreateCategoryForm() {
           <div className="grid gap-4 md:grid-cols-[1fr_140px]">
             <div className="space-y-2">
               <Label htmlFor="type">Tipo</Label>
-              <select id="type" name="type" className={selectClassName} defaultValue="variable_expense">
+              <select
+                id="type"
+                name="type"
+                className={selectClassName}
+                value={categoryType}
+                onChange={event => {
+                  const nextType = event.target.value as CategoryType
+                  setCategoryType(nextType)
+                  if (!manuallySelectedColor.current) setColor(suggestedColors[nextType])
+                }}
+              >
                 <option value="income">Ingreso</option>
                 <option value="fixed_expense">Gasto fijo</option>
                 <option value="variable_expense">Gasto variable</option>
@@ -63,13 +71,16 @@ export function CreateCategoryForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="color">Color</Label>
-              <Input
-                id="color"
+              <Label htmlFor="category-color">Color</Label>
+              <PaletteColorField
+                id="category-color"
                 name="color"
-                type="color"
-                defaultValue="#3b82f6"
-                className="h-10 w-full cursor-pointer p-1"
+                value={color}
+                onValueChange={nextColor => {
+                  manuallySelectedColor.current = true
+                  setColor(nextColor as FinancialPaletteColor)
+                }}
+                options={FINANCIAL_COLOR_PALETTE}
               />
               {state.fieldErrors?.color?.[0] && (
                 <p className="text-sm text-danger">{state.fieldErrors.color[0]}</p>
@@ -110,20 +121,20 @@ export function CreateCategoryForm() {
             </div>
           </div>
 
-          {state.message && (
+          {state.status === 'error' && state.message && (
             <p
               aria-live="polite"
-              className={state.status === 'success' ? 'text-sm text-success' : 'text-sm text-danger'}
+              className="text-sm text-danger"
             >
               {state.message}
             </p>
           )}
 
-          <Button type="submit" disabled={pending}>
-            {pending ? 'Guardando...' : 'Crear categoría'}
-          </Button>
+          <DialogFooter>
+            <Button type="submit" className="w-full sm:w-auto" disabled={pending}>
+              {pending ? 'Guardando...' : 'Crear categoría'}
+            </Button>
+          </DialogFooter>
         </form>
-      </CardContent>
-    </Card>
   )
 }

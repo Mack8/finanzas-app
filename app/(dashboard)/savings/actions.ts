@@ -4,6 +4,7 @@ import { getLatestExchangeRate } from '@/lib/bccr/exchange-rate'
 import { resolveCategoryForType } from '@/lib/categories-resolve'
 import { revalidateMoneyPaths } from '@/lib/revalidate'
 import { createClient } from '@/lib/supabase/server'
+import { chooseBalancedFinancialColor, isFinancialPaletteColor } from '@/lib/financial-colors'
 import { resolveAmountCRC, type ExchangeRateSnapshot } from '@/lib/transactions'
 import { contributionSchema, savingsFundSchema } from '@/lib/validations'
 
@@ -57,6 +58,29 @@ export async function createSavingsFundAction(
   }
 
   const values = parsed.data
+  if (values.color && !isFinancialPaletteColor(values.color)) {
+    return {
+      status: 'error',
+      message: 'Seleccioná un color de la paleta disponible.',
+      fieldErrors: { color: ['Seleccioná un color de la paleta disponible.'] },
+    }
+  }
+
+  let color = values.color || undefined
+  if (!color) {
+    const { data: fundsWithColors, error: colorsError } = await supabase
+      .from('savings_funds')
+      .select('color')
+      .eq('user_id', user.id)
+
+    if (colorsError) {
+      return { status: 'error', message: 'No se pudo asignar un color al fondo.' }
+    }
+    color = chooseBalancedFinancialColor((fundsWithColors ?? [])
+      .map(fund => fund.color)
+      .filter((usedColor): usedColor is string => typeof usedColor === 'string'))
+  }
+
   let latestExchangeRate: ExchangeRateSnapshot | null = null
 
   if (values.goalCurrency === 'USD') {
@@ -91,7 +115,7 @@ export async function createSavingsFundAction(
     target_date: values.targetDate,
     monthly_contribution_amount: values.monthlyContributionAmount ?? null,
     monthly_contribution_currency: values.monthlyContributionCurrency ?? null,
-    color: values.color || '#3b82f6',
+    color,
     is_active: true,
   })
 

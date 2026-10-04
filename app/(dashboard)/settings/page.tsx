@@ -7,7 +7,7 @@ import { DeleteCategoryButton } from '@/components/settings/DeleteCategoryButton
 import { EditCategoryDialog } from '@/components/settings/EditCategoryDialog'
 import { IngestIssues, type IngestIssue } from '@/components/settings/IngestIssues'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { CreationPanel } from '@/components/layout/CreationPanel'
+import { FormDialog } from '@/components/layout/FormDialog'
 import { SettingsNavigation } from '@/components/settings/SettingsNavigation'
 import { resolveSettingsSection } from '@/lib/settings-navigation'
 import { KpiCard } from '@/components/layout/KpiCard'
@@ -18,6 +18,8 @@ import { formatMoney } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
 import { toggleCategoryStatusAction } from './actions'
 import type { Category } from '@/types/domain'
+import { chooseBalancedFinancialColor } from '@/lib/financial-colors'
+import type { SuggestedCategoryColors } from '@/components/settings/CreateCategoryForm'
 
 type CategorySummary = Pick<
   Category,
@@ -64,6 +66,12 @@ export default async function SettingsPage({ searchParams }: {
   ])
 
   const categories = (categoriesData ?? []) as CategorySummary[]
+  const suggestedCategoryColors: SuggestedCategoryColors = {
+    income: chooseBalancedFinancialColor(categories.filter(category => category.type === 'income').map(category => category.color)),
+    fixed_expense: chooseBalancedFinancialColor(categories.filter(category => category.type === 'fixed_expense').map(category => category.color)),
+    variable_expense: chooseBalancedFinancialColor(categories.filter(category => category.type === 'variable_expense').map(category => category.color)),
+    savings: chooseBalancedFinancialColor(categories.filter(category => category.type === 'savings').map(category => category.color)),
+  }
 
   const { data: issuesData } = await supabase
     .from('email_ingest_log')
@@ -106,7 +114,9 @@ export default async function SettingsPage({ searchParams }: {
       <SettingsNavigation section={section} />
 
       {section === 'categories' && <>
-      <CreationPanel label="Agregar categoría"><CreateCategoryForm /></CreationPanel>
+      <FormDialog triggerLabel="Agregar categoría" title="Nueva categoría" description="Organizá tus ingresos y gastos con una categoría propia.">
+        <CreateCategoryForm suggestedColors={suggestedCategoryColors} />
+      </FormDialog>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <KpiCard
@@ -223,7 +233,13 @@ export default async function SettingsPage({ searchParams }: {
           </p>
           <Link href="/transactions" className="mt-2 inline-block text-sm text-primary underline underline-offset-4">Registrar un ingreso recibido →</Link>
         </div>
-        <IncomeConfigForm currentConfig={currentIncomeConfig} />
+        <FormDialog
+          triggerLabel={currentIncomeConfig ? 'Actualizar ingresos' : 'Configurar ingresos'}
+          title="Configuración de ingresos"
+          description="Definí lo que esperás recibir en uno o dos pagos. Esto no registra dinero recibido."
+        >
+          <IncomeConfigForm currentConfig={currentIncomeConfig} />
+        </FormDialog>
       </div>}
 
       {section === 'automation' && <div className="space-y-4">

@@ -3,6 +3,7 @@
 import { getNextCategorySortOrder } from '@/lib/categories'
 import { revalidateMoneyPaths } from '@/lib/revalidate'
 import { createClient } from '@/lib/supabase/server'
+import { chooseBalancedFinancialColor, isFinancialPaletteColor } from '@/lib/financial-colors'
 import { categorySchema, incomeConfigSchema } from '@/lib/validations'
 import type { CategoryType } from '@/types/database'
 
@@ -38,7 +39,7 @@ export async function createCategoryAction(
   const parsed = categorySchema.safeParse({
     name: formData.get('name'),
     type: formData.get('type'),
-    color: formData.get('color'),
+    color: formData.get('color') || undefined,
     monthlyBudgetAmount: formData.get('monthlyBudgetAmount'),
     monthlyBudgetCurrency: formData.get('monthlyBudgetCurrency') || undefined,
   })
@@ -52,6 +53,14 @@ export async function createCategoryAction(
   }
 
   const values = parsed.data
+
+  if (values.color && !isFinancialPaletteColor(values.color)) {
+    return {
+      status: 'error',
+      message: 'Seleccioná un color de la paleta disponible.',
+      fieldErrors: { color: ['Seleccioná un color de la paleta disponible.'] },
+    }
+  }
 
   const { data: latestCategory, error: sortOrderError } = await supabase
     .from('categories')
@@ -69,11 +78,25 @@ export async function createCategoryAction(
     }
   }
 
+  let color = values.color
+  if (!color) {
+    const { data: categoriesWithColors, error: colorsError } = await supabase
+      .from('categories')
+      .select('color')
+      .eq('user_id', user.id)
+      .eq('type', values.type)
+
+    if (colorsError) {
+      return { status: 'error', message: 'No se pudo asignar un color a la categoría.' }
+    }
+    color = chooseBalancedFinancialColor((categoriesWithColors ?? []).map(category => category.color))
+  }
+
   const { error: insertError } = await supabase.from('categories').insert({
     user_id: user.id,
     name: values.name,
     type: values.type,
-    color: values.color,
+    color,
     icon: null,
     monthly_budget_amount: values.monthlyBudgetAmount ?? null,
     monthly_budget_currency: values.monthlyBudgetCurrency ?? 'CRC',
@@ -144,7 +167,7 @@ export async function updateCategoryAction(
   const parsed = categorySchema.safeParse({
     name: formData.get('name'),
     type: formData.get('type'),
-    color: formData.get('color'),
+    color: formData.get('color') || undefined,
     monthlyBudgetAmount: formData.get('monthlyBudgetAmount'),
     monthlyBudgetCurrency: formData.get('monthlyBudgetCurrency') || undefined,
   })
@@ -161,12 +184,20 @@ export async function updateCategoryAction(
   // Fetch current type from DB to avoid client-supplied originalType bypass
   const { data: currentCategory } = await supabase
     .from('categories')
-    .select('type')
+    .select('type, color')
     .eq('id', id)
     .eq('user_id', user.id)
     .maybeSingle()
 
   const originalType = currentCategory?.type ?? values.type
+  const nextColor = values.color ?? currentCategory?.color
+  if (!nextColor || (!isFinancialPaletteColor(nextColor) && nextColor !== currentCategory?.color)) {
+    return {
+      status: 'error',
+      message: 'Seleccioná un color de la paleta disponible.',
+      fieldErrors: { color: ['Seleccioná un color de la paleta disponible.'] },
+    }
+  }
 
   // If type is changing, block if category has associated transactions
   if (values.type !== originalType) {
@@ -188,7 +219,7 @@ export async function updateCategoryAction(
     .update({
       name: values.name,
       type: values.type,
-      color: values.color,
+      color: nextColor,
       monthly_budget_amount: values.monthlyBudgetAmount ?? null,
       monthly_budget_currency: values.monthlyBudgetCurrency ?? 'CRC',
     })

@@ -1,8 +1,10 @@
 'use client'
 
-import { useActionState, useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DialogFooter } from '@/components/ui/dialog'
+import { useFormDialogControls } from '@/components/layout/form-dialog-context'
+import { useActionStateFormSubmit, useClosingActionState } from '@/components/ui/use-closing-action-state'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createDebtAction, type DebtActionState } from '@/app/(dashboard)/debts/actions'
@@ -17,21 +19,13 @@ type Props = {
 }
 
 export function CreateDebtForm({ latestExchangeRate }: Props) {
-  const [state, formAction, pending] = useActionState(createDebtAction, initialState)
-  const formRef = useRef<HTMLFormElement>(null)
-
-  useEffect(() => {
-    if (state.status === 'success') formRef.current?.reset()
-  }, [state.status])
+  const { setOpen, setPending } = useFormDialogControls()
+  const [state, formAction, pending] = useClosingActionState(createDebtAction, initialState, setOpen)
+  const handleSubmit = useActionStateFormSubmit(formAction)
+  useEffect(() => setPending(pending), [pending, setPending])
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Nueva deuda</CardTitle>
-        <CardDescription>Registrá cuotas fijas: leasing, tarjetas a plazo, préstamos.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form ref={formRef} action={formAction} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="debt-name">Nombre</Label>
             <Input id="debt-name" name="name" type="text" placeholder="Ej. Leasing, Claro BAC" required />
@@ -87,11 +81,11 @@ export function CreateDebtForm({ latestExchangeRate }: Props) {
             </p>
           )}
 
-          <Button type="submit" disabled={pending}>
-            {pending ? 'Guardando...' : 'Registrar deuda'}
-          </Button>
+          <DialogFooter>
+            <Button type="submit" className="w-full sm:w-auto" disabled={pending}>
+              {pending ? 'Guardando...' : 'Registrar deuda'}
+            </Button>
+          </DialogFooter>
         </form>
-      </CardContent>
-    </Card>
   )
 }

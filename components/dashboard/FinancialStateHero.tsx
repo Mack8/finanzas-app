@@ -30,17 +30,22 @@ export function FinancialStateHero({ position }: { position: FinancialPosition }
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground">Margen seguro</p>
-          <p className={cn('mt-2 break-words font-mono text-3xl font-bold tracking-tight tabular-nums sm:text-5xl', position.safeCRC > 0 && 'text-success', position.safeCRC < 0 && 'text-danger')}>
+          <p className={cn('mt-2 break-words font-mono text-3xl font-bold tracking-tight tabular-nums sm:text-5xl',
+            position.state === 'stable' && 'text-success',
+            position.state === 'attention' && 'text-warning',
+            position.state === 'risk' && 'text-danger',
+            position.state === 'incomplete' && 'text-muted-foreground',
+          )}>
             {formatMoney(position.safeCRC, 'CRC')}
           </p>
           <p className="mt-3 text-sm text-muted-foreground">
             {position.safeCRC <= 0 ? 'No hay margen para nuevos gastos.' : `${formatMoney(position.dailySafeCRC, 'CRC')} por día durante ${position.horizonDays} días, incluido hoy.`}
           </p>
-          <p className="mt-2 text-xs text-muted-foreground">Saldo del mes menos {formatMoney(position.pendingCommitmentsCRC, 'CRC')} en compromisos pendientes.</p>
+          <p className="mt-2 text-xs text-muted-foreground">El margen seguro ya reserva {formatMoney(position.pendingCommitmentsCRC, 'CRC')} para compromisos pendientes.</p>
         </div>
         <dl className="grid gap-4 rounded-xl border bg-surface p-4 sm:grid-cols-2 lg:grid-cols-1">
-          <div><dt className="text-xs text-muted-foreground">Confirmado hoy</dt><dd className="mt-1 break-words font-mono text-lg font-semibold">{formatMoney(position.confirmedCRC, 'CRC')}</dd><dd className="mt-1 text-xs text-muted-foreground">Ingresos − gastos − ahorro registrados este mes.</dd></div>
-          <div><dt className="text-xs text-muted-foreground">Proyectado</dt><dd className="mt-1 break-words font-mono text-lg font-semibold">{position.projectedCRC === null ? <Link href="/settings" className="text-sm text-primary underline underline-offset-4">Configurá ingresos</Link> : formatMoney(position.projectedCRC, 'CRC')}</dd><dd className="mt-1 text-xs text-muted-foreground">Margen + ingreso configurado aún sin registrar. Estimación sin fecha de cobro; no disponible hoy.</dd></div>
+          <div><dt className="text-xs text-muted-foreground">Confirmado este mes</dt><dd className="mt-1 break-words font-mono text-lg font-semibold">{formatMoney(position.confirmedCRC, 'CRC')}</dd><dd className="mt-1 text-xs text-muted-foreground">Ingresos recibidos menos gastos y ahorro registrados en el periodo.</dd></div>
+          <div><dt className="text-xs text-muted-foreground">{position.projectedCRC === null ? 'Estimado' : 'Estimado · no disponible hoy'}</dt><dd className="mt-1 break-words font-mono text-lg font-semibold">{position.projectedCRC === null ? <Link href="/settings" className="text-sm text-primary underline underline-offset-4">Configurá ingresos</Link> : formatMoney(position.projectedCRC, 'CRC')}</dd><dd className="mt-1 text-xs text-muted-foreground">{position.projectedCRC === null ? 'Falta configurar un ingreso mensual para mostrar el estimado.' : 'Margen seguro más ingreso configurado aún no registrado. Es una estimación, no dinero disponible hoy.'}</dd></div>
         </dl>
       </div>
     </section>

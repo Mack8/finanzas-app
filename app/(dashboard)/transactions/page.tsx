@@ -7,7 +7,7 @@ import { EditTransactionDialog } from '@/components/transactions/EditTransaction
 import { RefreshExchangeRateButton } from '@/components/transactions/RefreshExchangeRateButton'
 import { TransactionFilters } from '@/components/transactions/TransactionFilters'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { CreationPanel } from '@/components/layout/CreationPanel'
+import { FormDialog } from '@/components/layout/FormDialog'
 import { KpiCard } from '@/components/layout/KpiCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getLatestExchangeRate, isExchangeRateSyncConfigured } from '@/lib/bccr/exchange-rate'
@@ -136,9 +136,9 @@ export default async function TransactionsPage({
         description="Registrá y consultá tus movimientos financieros."
       />
 
-      <CreationPanel label="Registrar movimiento">
+      <FormDialog triggerLabel="Registrar movimiento" title="Nuevo movimiento" description="Registrá ingresos, gastos o movimientos personales usando tus categorías actuales.">
         <CreateTransactionForm categories={categories} latestExchangeRate={latestExchangeRate} accounts={accounts} />
-      </CreationPanel>
+      </FormDialog>
 
       <p className="text-sm text-muted-foreground">Mostrando {transactions.length} movimientos (máximo 50). Los totales corresponden a estos resultados.</p>
       <div className="grid grid-cols-2 gap-3">

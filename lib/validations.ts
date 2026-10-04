@@ -1,5 +1,9 @@
 import { z } from 'zod'
 
+const optionalHexColor = z.string()
+  .regex(/^#[0-9a-fA-F]{6}$/, 'Seleccioná un color válido')
+  .optional()
+
 const optionalPositiveAmount = z.preprocess(value => {
   if (value === '' || value === null || value === undefined) {
     return undefined
@@ -57,8 +61,7 @@ export const categorySchema = z.object({
   type: z.enum(['fixed_expense', 'variable_expense', 'savings', 'income'], {
     error: 'Tipo de categoría inválido',
   }),
-  color: z.string()
-    .regex(/^#[0-9a-fA-F]{6}$/, 'Seleccioná un color válido'),
+  color: optionalHexColor,
   monthlyBudgetAmount: optionalPositiveAmount,
   monthlyBudgetCurrency: z.enum(['CRC', 'USD'], {
     error: 'Moneda inválida',
@@ -101,10 +104,7 @@ export const savingsFundSchema = z.object({
     .positive('La meta debe ser mayor a 0'),
   goalCurrency: z.enum(['CRC', 'USD'], { error: 'Moneda inválida' }),
   targetDate: z.string().min(1, 'La fecha meta es obligatoria'),
-  color: z.string()
-    .regex(/^#[0-9a-fA-F]{6}$/, 'Seleccioná un color válido')
-    .optional()
-    .or(z.literal('')),
+  color: optionalHexColor.or(z.literal('')),
   monthlyContributionAmount: optionalPositiveAmount,
   monthlyContributionCurrency: z.enum(['CRC', 'USD'], { error: 'Moneda inválida' }).optional(),
 })

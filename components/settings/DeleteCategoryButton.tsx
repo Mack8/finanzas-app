@@ -33,9 +33,11 @@ export function DeleteCategoryButton({ categoryId, categoryName, transactionCoun
     () => deleteCategoryAction.bind(null, categoryId),
     [categoryId]
   )
-  const [state, formAction, pending] = useClosingActionState(boundAction, initialState, setOpen)
+  const [state, formAction, pending, resetActionState] = useClosingActionState(boundAction, initialState, setOpen)
 
   function handleOpenChange(next: boolean) {
+    if (pending && !next) return
+    if (!next) resetActionState()
     if (!next) setFormKey(k => k + 1)
     setOpen(next)
   }

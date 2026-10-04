@@ -1,8 +1,10 @@
 'use client'
 
-import { useActionState, useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DialogFooter } from '@/components/ui/dialog'
+import { useFormDialogControls } from '@/components/layout/form-dialog-context'
+import { useActionStateFormSubmit, useClosingActionState } from '@/components/ui/use-closing-action-state'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { getTodayCR } from '@/lib/format'
@@ -52,25 +54,13 @@ export function CreateTransactionForm({
   latestExchangeRate,
   accounts,
 }: CreateTransactionFormProps) {
-  const [state, formAction, pending] = useActionState(createTransactionAction, initialState)
-  const formRef = useRef<HTMLFormElement>(null)
-
-  useEffect(() => {
-    if (state.status === 'success') {
-      formRef.current?.reset()
-    }
-  }, [state.status])
+  const { setOpen, setPending } = useFormDialogControls()
+  const [state, formAction, pending] = useClosingActionState(createTransactionAction, initialState, setOpen)
+  const handleSubmit = useActionStateFormSubmit(formAction)
+  useEffect(() => setPending(pending), [pending, setPending])
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Nuevo movimiento</CardTitle>
-        <CardDescription>
-          Registrá ingresos, gastos o movimientos personales usando tus categorías actuales.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form ref={formRef} action={formAction} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="date">Fecha</Label>
@@ -232,11 +222,11 @@ export function CreateTransactionForm({
             </p>
           )}
 
-          <Button type="submit" className="w-full md:w-auto" disabled={pending || categories.length === 0}>
-            {pending ? 'Guardando...' : 'Guardar transacción'}
-          </Button>
+          <DialogFooter>
+            <Button type="submit" className="w-full sm:w-auto" disabled={pending || categories.length === 0}>
+              {pending ? 'Guardando...' : 'Guardar transacción'}
+            </Button>
+          </DialogFooter>
         </form>
-      </CardContent>
-    </Card>
   )
 }
