@@ -297,7 +297,7 @@ export async function getDashboardSummary(
   const dateFrom = `${year}-${monthStr}-01`
   const dateTo = `${year}-${monthStr}-${String(lastDay).padStart(2, '0')}`
 
-  const [{ data: txData }, { data: catData }, { data: rateData }] = await Promise.all([
+  const [{ data: txData, error: txError }, { data: catData, error: catError }, { data: rateData, error: rateError }] = await Promise.all([
     supabase
       .from('transactions')
       .select('amount_crc, category_id, transaction_type, category:categories(type)')
@@ -316,6 +316,8 @@ export async function getDashboardSummary(
       .limit(1)
       .maybeSingle(),
   ])
+
+  if (txError || catError || rateError) throw new Error('No se pudo cargar el resumen financiero.')
 
   type TxWithCategory = {
     amount_crc: number
@@ -407,11 +409,11 @@ export async function getCashFlowBreakdown(
   const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(new Date())
 
   const [
-    { data: incomeRows },
-    { data: txRows },
-    { data: debts },
-    { data: funds },
-    { data: rateData },
+    { data: incomeRows, error: incomeError },
+    { data: txRows, error: txError },
+    { data: debts, error: debtsError },
+    { data: funds, error: fundsError },
+    { data: rateData, error: rateError },
   ] = await Promise.all([
     supabase
       .from('income_config')
@@ -439,6 +441,10 @@ export async function getCashFlowBreakdown(
       .limit(1)
       .maybeSingle(),
   ])
+
+  if (incomeError || txError || debtsError || fundsError || rateError) {
+    throw new Error('No se pudo cargar el flujo financiero.')
+  }
 
   type TxRow = {
     amount_crc: number
@@ -634,11 +640,13 @@ export async function getMonthlyExpensesByCategory(
   const dateFrom = `${year}-${monthStr}-01`
   const dateTo = `${year}-${monthStr}-${String(lastDay).padStart(2, '0')}`
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('transactions')
     .select('amount_crc, category_id, category:categories(type, name, color)')
     .gte('date', dateFrom)
     .lte('date', dateTo)
+
+  if (error) throw new Error('No se pudo cargar el gasto por categoría.')
 
   type ExpenseByCatTx = {
     amount_crc: number
