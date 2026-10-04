@@ -27,7 +27,7 @@ export function IncomeConfigForm({ currentConfig }: Props) {
       <CardHeader>
         <CardTitle>Configuración de ingresos</CardTitle>
         <CardDescription>
-          Ingresá tu salario mensual. Podés tener dos pagos (ej. quincenas). Cada guardado crea un nuevo registro con su fecha de vigencia — el historial se preserva.
+          Configurá lo que esperás recibir en uno o dos pagos. No registra dinero recibido; el historial de configuración se conserva.
         </CardDescription>
       </CardHeader>
       <CardContent>

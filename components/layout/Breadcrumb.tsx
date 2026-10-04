@@ -4,11 +4,11 @@ import { usePathname } from 'next/navigation'
 import { ChevronRight } from 'lucide-react'
 
 const labels: Record<string, string> = {
-  '/':             'Dashboard',
-  '/transactions': 'Transacciones',
+  '/':             'Resumen',
+  '/transactions': 'Movimientos',
   '/savings':      'Ahorro',
   '/debts':        'Deudas',
-  '/cards':        'Tarjetas',
+  '/cards':        'Cuentas',
   '/reports':      'Reportes',
   '/settings':     'Configuración',
 }

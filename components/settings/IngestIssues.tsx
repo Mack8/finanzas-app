@@ -30,7 +30,7 @@ export function IngestIssues({ issues }: { issues: IngestIssue[] }) {
       <CardHeader>
         <CardTitle>Correos con problemas</CardTitle>
         <CardDescription>
-          Alertas del banco que el worker no pudo convertir en una transacción (últimas 20).
+          Alertas del banco que no se pudieron convertir en un movimiento (últimas 20).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">

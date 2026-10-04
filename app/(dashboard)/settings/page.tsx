@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { FolderTree, Eye, Wallet } from 'lucide-react'
 import { CreateCategoryForm } from '@/components/settings/CreateCategoryForm'
 import { IncomeConfigForm } from '@/components/settings/IncomeConfigForm'
@@ -6,6 +7,9 @@ import { DeleteCategoryButton } from '@/components/settings/DeleteCategoryButton
 import { EditCategoryDialog } from '@/components/settings/EditCategoryDialog'
 import { IngestIssues, type IngestIssue } from '@/components/settings/IngestIssues'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { CreationPanel } from '@/components/layout/CreationPanel'
+import { SettingsNavigation } from '@/components/settings/SettingsNavigation'
+import { resolveSettingsSection } from '@/lib/settings-navigation'
 import { KpiCard } from '@/components/layout/KpiCard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,13 +31,17 @@ type CategorySummary = Pick<
   | 'sort_order'
 >
 
-export default async function SettingsPage() {
+export default async function SettingsPage({ searchParams }: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
     redirect('/login')
   }
+
+  const section = resolveSettingsSection((await searchParams).section)
 
   const [{ data: categoriesData }, { data: txCounts }, { data: incomeConfigRows }] = await Promise.all([
     supabase
@@ -92,10 +100,15 @@ export default async function SettingsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Configuración"
-        description="Gestión de categorías e ingresos mensuales."
+        description="Elegí la tarea que querés configurar."
       />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <SettingsNavigation section={section} />
+
+      {section === 'categories' && <>
+      <CreationPanel label="Agregar categoría"><CreateCategoryForm /></CreationPanel>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <KpiCard
           title="Total"
           description="Categorías registradas"
@@ -118,9 +131,7 @@ export default async function SettingsPage() {
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_1fr]">
-        <CreateCategoryForm />
-
+      <div>
         <Card>
           <CardHeader>
             <CardTitle>Categorías existentes</CardTitle>
@@ -202,18 +213,27 @@ export default async function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+      </>}
 
-      <div className="space-y-3">
+      {section === 'income' && <div className="max-w-2xl space-y-4">
         <div>
-          <h3 className="text-lg font-semibold tracking-tight">Ingresos</h3>
+          <h2 className="text-lg font-semibold tracking-tight">Ingresos esperados</h2>
           <p className="text-sm text-muted-foreground">
-            Configurá tu salario para calcular el saldo disponible mensual.
+            Ingreso esperado para estimar el mes; no registra dinero recibido.
           </p>
+          <Link href="/transactions" className="mt-2 inline-block text-sm text-primary underline underline-offset-4">Registrar un ingreso recibido →</Link>
         </div>
         <IncomeConfigForm currentConfig={currentIncomeConfig} />
-      </div>
+      </div>}
 
-      <IngestIssues issues={ingestIssues} />
+      {section === 'automation' && <div className="space-y-4">
+        <div>
+          <h2 className="font-semibold">Compras desde el correo</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Revisá las alertas que no se pudieron registrar. Las compras importadas se identifican como Automático en Movimientos.</p>
+          <Link href="/transactions" className="mt-2 inline-block text-sm text-primary underline underline-offset-4">Ver movimientos →</Link>
+        </div>
+        <IngestIssues issues={ingestIssues} />
+      </div>}
     </div>
   )
 }

@@ -17,11 +17,11 @@ import { cn } from '@/lib/utils'
 import { useSidebarContext } from './sidebar-context'
 
 const navItems = [
-  { href: '/',             label: 'Dashboard',     icon: LayoutDashboard },
-  { href: '/transactions', label: 'Transacciones',  icon: ArrowLeftRight },
+  { href: '/',             label: 'Resumen',     icon: LayoutDashboard },
+  { href: '/transactions', label: 'Movimientos',  icon: ArrowLeftRight },
   { href: '/savings',      label: 'Ahorro',         icon: PiggyBank },
   { href: '/debts',        label: 'Deudas',         icon: TrendingDown },
-  { href: '/cards',        label: 'Tarjetas',       icon: CreditCard },
+  { href: '/cards',        label: 'Cuentas',       icon: CreditCard },
   { href: '/reports',      label: 'Reportes',       icon: BarChart3 },
   { href: '/settings',     label: 'Configuración',  icon: Settings },
 ]

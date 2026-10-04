@@ -14,7 +14,7 @@ describe('TransactionFilters', () => {
   it('asocia las etiquetas y conserva los filtros al cambiar categoría', async () => {
     render(<TransactionFilters defaultMonth="2026-10" categories={[{ id: 'food', name: 'Comida', type: 'variable_expense' }]} />)
     expect(screen.getByLabelText('Mes')).toHaveValue('2026-10')
-    expect(screen.getByLabelText('Tipo')).toHaveValue('')
+    expect(screen.getByLabelText('Ámbito')).toHaveValue('')
     expect(screen.getByLabelText('Moneda')).toHaveValue('CRC')
     await userEvent.setup().selectOptions(screen.getByLabelText('Categoría'), 'food')
     expect(replace).toHaveBeenCalledWith('/transactions?month=2026-10&currency=CRC&categoryId=food')

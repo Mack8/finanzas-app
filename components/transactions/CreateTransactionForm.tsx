@@ -64,7 +64,7 @@ export function CreateTransactionForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Nueva transacción</CardTitle>
+        <CardTitle>Nuevo movimiento</CardTitle>
         <CardDescription>
           Registrá ingresos, gastos o movimientos personales usando tus categorías actuales.
         </CardDescription>
@@ -138,7 +138,7 @@ export function CreateTransactionForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="transactionType">Tipo</Label>
+              <Label htmlFor="transactionType">Ámbito</Label>
               <select
                 id="transactionType"
                 name="transactionType"
@@ -219,7 +219,7 @@ export function CreateTransactionForm({
             </p>
           ) : (
             <p className="text-sm text-warning">
-              No hay tipo de cambio cargado en `exchange_rates`. Por ahora solo podés registrar en CRC.
+              No hay tipo de cambio disponible. Por ahora podés registrar en colones.
             </p>
           )}
 

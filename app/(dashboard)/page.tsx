@@ -66,8 +66,8 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={monthLabel}
-        description="Tu margen para decidir hoy y cuidar el resto del mes."
+        title="Resumen"
+        description={`${monthLabel} · Tu margen para decidir hoy y cuidar el resto del mes.`}
         actions={exchangeRate ? (
           <div className="rounded-xl border bg-card px-3 py-2 text-right">
             <p className="text-[11px] text-muted-foreground">Tipo de cambio BCCR</p>

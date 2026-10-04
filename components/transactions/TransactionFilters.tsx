@@ -74,7 +74,7 @@ export function TransactionFilters({ categories, defaultMonth }: Props) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="filter-type" className="text-xs text-muted-foreground">Tipo</label>
+        <label htmlFor="filter-type" className="text-xs text-muted-foreground">Ámbito</label>
         <select
           id="filter-type"
           className={selectClassName}
