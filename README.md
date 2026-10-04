@@ -17,6 +17,12 @@ App personal de control de finanzas: ingresos, gastos, tarjetas, deudas y fondos
 
 Las transacciones (`transactions`) son la fuente de verdad de lo que realmente entró o salió. Deudas, fondos de ahorro e `income_config` son planificación: cuando un evento se materializa se crea o enlaza una transacción. Detalle, KPIs y reglas en [`docs/money-model.md`](docs/money-model.md).
 
+## Dashboard: control del periodo
+
+El dashboard presenta primero el margen seguro: saldo registrado del mes menos cuotas y aportes pendientes. Luego muestra una acción prioritaria, el ritmo de gasto, la categoría que más aporta al gasto y la salud de ahorro y deudas. El horizonte es fin de mes, incluido hoy.
+
+El monto proyectado agrega únicamente el ingreso mensual configurado aún no registrado (mínimo cero); es una estimación sin fecha de cobro y no dinero disponible. Si faltan ingresos configurados o movimientos, se muestra el paso para completar los datos. Los gráficos y el histórico se consultan en Reportes. Calm Ledger usa tonos petróleo, menta, ámbar y coral, con etiquetas de estado y una variante clara seleccionable.
+
 ## Empezar en local
 
 Requisitos: Node 20+, Docker Desktop o Docker Engine con Compose. No necesitás un proyecto remoto de Supabase para desarrollar o ejecutar las pruebas.
