@@ -1,7 +1,8 @@
 'use client'
 
-import { useActionState, useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { useClosingActionState } from '@/components/ui/use-closing-action-state'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
   DialogHeader, DialogTitle, DialogTrigger,
@@ -20,11 +21,7 @@ export function DeleteDebtButton({ debtId, debtName, paidInstallments }: Props) 
   const [open, setOpen] = useState(false)
   const [formKey, setFormKey] = useState(0)
   const boundAction = useMemo(() => deleteDebtAction.bind(null, debtId), [debtId])
-  const [state, formAction, pending] = useActionState(boundAction, initialState)
-
-  useEffect(() => {
-    if (state.status === 'success') setOpen(false)
-  }, [state.status])
+  const [state, formAction, pending] = useClosingActionState(boundAction, initialState, setOpen)
 
   function handleOpenChange(next: boolean) {
     if (!next) setFormKey(k => k + 1)

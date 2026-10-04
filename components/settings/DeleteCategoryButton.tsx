@@ -1,7 +1,8 @@
 'use client'
 
-import { useActionState, useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { useClosingActionState } from '@/components/ui/use-closing-action-state'
 import {
   Dialog,
   DialogContent,
@@ -32,11 +33,7 @@ export function DeleteCategoryButton({ categoryId, categoryName, transactionCoun
     () => deleteCategoryAction.bind(null, categoryId),
     [categoryId]
   )
-  const [state, formAction, pending] = useActionState(boundAction, initialState)
-
-  useEffect(() => {
-    if (state.status === 'success') setOpen(false)
-  }, [state.status])
+  const [state, formAction, pending] = useClosingActionState(boundAction, initialState, setOpen)
 
   function handleOpenChange(next: boolean) {
     if (!next) setFormKey(k => k + 1)
