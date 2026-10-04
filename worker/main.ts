@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { getExchangeRateForDate, toExchangeRateSnapshot } from '@/lib/bccr/exchange-rate'
+import { getCachedExchangeRateForDate, getExchangeRateForDate, toExchangeRateSnapshot } from '@/lib/bccr/exchange-rate'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { categorize } from './categorizer'
 import { makeOllamaAsk } from './categorizer/ollama'
@@ -35,8 +35,11 @@ async function main() {
 
   const tokenStore = fileTokenStore(join(cfg.stateDir, 'token.json'))
   const ledger = supabaseLedgerStore(supabase, cfg.userId)
-  const getRate = async (date: string) =>
-    toExchangeRateSnapshot(await getExchangeRateForDate(date, { ensureFresh: true }))
+  const getRate = async (date: string) => toExchangeRateSnapshot(
+    dry
+      ? await getCachedExchangeRateForDate(date)
+      : await getExchangeRateForDate(date, { ensureFresh: true })
+  )
   const categories = supabaseCategoryStore(supabase, cfg.userId, { createFallback: !dry })
   const ask = makeOllamaAsk({ url: cfg.ollamaUrl, model: cfg.ollamaModel })
 
@@ -57,7 +60,11 @@ async function main() {
     cursor: dry ? memoryCursorStore() : fileCursorStore(join(cfg.stateDir, 'cursor.json')),
     log: dry ? memoryIngestLog() : supabaseIngestLog(supabase, cfg.userId),
     fetchMessages: async since =>
-      fetchBankMessages(await getAccessToken(cfg.msClientId, tokenStore, defaultIO), since, cfg.senders),
+      fetchBankMessages(
+        await getAccessToken(cfg.msClientId, tokenStore, defaultIO, { allowRefresh: !dry }),
+        since,
+        cfg.senders,
+      ),
     categorize: (merchant, hint) => categorize(merchant, hint, { store: categories, ask }),
     write,
     requireAuthPass: cfg.requireAuthPass,

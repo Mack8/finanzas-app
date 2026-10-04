@@ -18,7 +18,9 @@
     "dev:local": "npm run supabase:start && npm run supabase:env && next dev",
     "worker": "tsx worker/main.ts",
     "worker:dry": "tsx worker/main.ts --dry-run",
+    "worker:dry:remote": "node --env-file=.env.remote.local --import tsx worker/main.ts --dry-run",
     "worker:login": "tsx worker/login.ts",
+    "worker:login:remote": "node --env-file=.env.remote.local --import tsx worker/login.ts",
     "worker:eval": "tsx worker/eval/run.ts",
     "worker:smoke": "tsx worker/local-db/smoke.ts"
   },

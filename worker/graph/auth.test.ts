@@ -47,6 +47,21 @@ describe('getAccessToken', () => {
     expect(String(init.body)).toContain('refresh_token=R')
   })
 
+  it('no renueva ni escribe el token cuando se exige autenticación de solo lectura', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(json({ access_token: 'A2', refresh_token: 'R2', expires_in: 3600 }))
+    const write = vi.fn()
+    const store: TokenStore = {
+      read: async () => ({ accessToken: 'A', refreshToken: 'R', expiresAt: 1_000_000 + 60_000 }),
+      write,
+    }
+
+    await expect(getAccessToken('cid', store, makeIO(fetchFn), { allowRefresh: false }))
+      .rejects.toBeInstanceOf(AuthRequiredError)
+
+    expect(fetchFn).not.toHaveBeenCalled()
+    expect(write).not.toHaveBeenCalled()
+  })
+
   it('conserva el refresh token anterior si la respuesta no trae uno nuevo', async () => {
     const fetchFn = vi.fn().mockResolvedValue(json({ access_token: 'A2', expires_in: 3600 }))
     const store = memoryStore({ accessToken: 'A', refreshToken: 'R', expiresAt: 0 })

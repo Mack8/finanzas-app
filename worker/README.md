@@ -20,8 +20,10 @@ Lee las alertas de compra de BAC, Promerica y DAVIbank desde Hotmail y crea tran
 ## Uso
 
 ```bash
-npm run worker:login        # inicia sesión con código de dispositivo (una vez)
+npm run worker:login        # inicia sesión con código de dispositivo (una vez, config local)
+npm run worker:login:remote # sesión para ensayos contra .env.remote.local
 npm run worker:dry -- --days 14   # ensayo: lee el buzón e imprime, NO escribe nada
+npm run worker:dry:remote -- --days 14 # mismo ensayo con la configuración de .env.remote.local
 npm run worker              # ciclo continuo cada POLL_MINUTES minutos
 npm run worker -- --once    # un solo ciclo y termina
 npm run worker:eval         # mide el modelo con comercios de ejemplo
@@ -33,6 +35,8 @@ npm run worker:eval         # mide el modelo con comercios de ejemplo
 
 - `token.json`: sesión de Microsoft (permisos 600). Si vence: `npm run worker:login`.
 - `cursor.json`: hasta dónde se leyó. Se puede borrar: se relee una ventana reciente y el registro evita duplicados.
+
+El modo `--dry-run` solo acepta tasas ya guardadas en Supabase de los últimos siete días. No siembra tasas ni renueva tokens; si Microsoft venció el token, corré `npm run worker:login` antes del ensayo. `worker:dry:remote` carga explícitamente `.env.remote.local` y mantiene `.env.local` intacto.
 
 ## Probar contra una base local
 

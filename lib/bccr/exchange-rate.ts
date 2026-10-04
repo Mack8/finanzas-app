@@ -177,6 +177,29 @@ export function toExchangeRateSnapshot(
   return { id: rate.id, date: rate.date, usd_to_crc: rate.usd_to_crc }
 }
 
+/** Reads a recent cached rate only. This helper never contacts BCCR or writes to Supabase. */
+export async function getCachedExchangeRateForDate(dateStr: string) {
+  const admin = createAdminClient()
+  const target = DATE_REGEX.test(dateStr) ? dateStr : formatDateForDatabase(new Date())
+  const targetDate = parseISODateOnly(target)
+  const lookbackStart = formatDateForDatabase(subtractDays(targetDate, BCCR_LOOKBACK_DAYS))
+
+  const { data: cachedRows, error } = await admin
+    .from('exchange_rates')
+    .select('*')
+    .lte('date', target)
+    .gte('date', lookbackStart)
+    .order('date', { ascending: false })
+    .limit(1)
+
+  if (error) {
+    throw new Error('No se pudo consultar el cache local de tipo de cambio.')
+  }
+
+  const cached = cachedRows?.[0]
+  return cached ? toResolution(cached, 'cache') : null
+}
+
 /**
  * Rate for a specific operation date (YYYY-MM-DD).
  * Uses cache: exact date, else nearest prior date within lookback.

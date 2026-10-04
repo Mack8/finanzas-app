@@ -81,10 +81,16 @@ function toCache(json: OAuthResponse, io: AuthIO, previousRefresh?: string): Tok
   }
 }
 
-export async function getAccessToken(clientId: string, store: TokenStore, io: AuthIO = defaultIO): Promise<string> {
+export async function getAccessToken(
+  clientId: string,
+  store: TokenStore,
+  io: AuthIO = defaultIO,
+  options: { allowRefresh?: boolean } = {},
+): Promise<string> {
   const cached = await store.read()
   if (!cached) throw new AuthRequiredError()
   if (cached.expiresAt - io.now() > REFRESH_MARGIN_MS) return cached.accessToken
+  if (options.allowRefresh === false) throw new AuthRequiredError()
 
   const { ok, json } = await postForm(io, 'token', {
     client_id: clientId,
