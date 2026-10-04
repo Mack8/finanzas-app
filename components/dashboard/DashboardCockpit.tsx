@@ -9,7 +9,7 @@ export function DashboardCockpit({ model, savingsFunds, debts }: { model: Cockpi
     <div className="space-y-5 sm:space-y-6">
       <FinancialStateHero position={model.position} />
       <DecisionAction {...model.action} />
-      <EvidenceStrip {...model.evidence} />
+      <EvidenceStrip {...model.evidence} hasPendingCommitments={model.position.pendingCommitmentsCRC > 0} />
       <CommitmentRail savingsFunds={savingsFunds} debts={debts} />
     </div>
   )

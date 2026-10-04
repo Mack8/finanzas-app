@@ -56,8 +56,8 @@ export function Sidebar() {
               className="flex items-center gap-2.5 transition-opacity hover:opacity-90"
               onClick={() => isMobile && toggleSidebar()}
             >
-              <div className="flex size-9 items-center justify-center rounded-xl bg-primary shadow-sm">
-                <Wallet className="size-5 text-primary-foreground" />
+              <div className="flex size-9 items-center justify-center rounded-xl bg-success shadow-sm">
+                <Wallet className="size-5 text-success-foreground" />
               </div>
               <div className="leading-tight">
                 <span className="block text-base font-semibold text-sidebar-foreground">

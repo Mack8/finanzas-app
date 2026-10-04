@@ -13,7 +13,11 @@ export function FinancialStateHero({ position }: { position: FinancialPosition }
         : 'Podés gastar con tranquilidad'
 
   return (
-    <section aria-labelledby="financial-state" data-state={position.state} className="rounded-2xl border bg-card p-5 card-shadow sm:p-8">
+    <section aria-labelledby="financial-state" data-state={position.state} className={cn('rounded-2xl border border-l-[3px] bg-card p-5 card-shadow sm:p-8',
+      position.state === 'stable' && 'border-l-success',
+      position.state === 'attention' && 'border-l-warning',
+      position.state === 'risk' && 'border-l-danger',
+    )}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="financial-state" className={cn('text-sm font-semibold',
           position.state === 'stable' && 'text-success',
@@ -26,7 +30,7 @@ export function FinancialStateHero({ position }: { position: FinancialPosition }
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground">Margen seguro</p>
-          <p className={cn('mt-2 break-words font-mono text-3xl font-bold tracking-tight tabular-nums sm:text-5xl', position.safeCRC < 0 && 'text-danger')}>
+          <p className={cn('mt-2 break-words font-mono text-3xl font-bold tracking-tight tabular-nums sm:text-5xl', position.safeCRC > 0 && 'text-success', position.safeCRC < 0 && 'text-danger')}>
             {formatMoney(position.safeCRC, 'CRC')}
           </p>
           <p className="mt-3 text-sm text-muted-foreground">
