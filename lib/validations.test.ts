@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { categorySchema, debtSchema, loginSchema, registerSchema, savingsFundSchema, transactionSchema } from './validations'
+import {
+  categorySchema, debtSchema, loginSchema, recurringObligationSchema,
+  recordObligationPaymentSchema, registerSchema, savingsFundSchema, transactionSchema,
+} from './validations'
 
 describe('loginSchema', () => {
   it('accepts valid credentials', () => {
@@ -117,6 +120,46 @@ describe('debtSchema next due date', () => {
     const result = debtSchema.safeParse({ ...validDebt, nextDueDate: '2026-02-30' })
     expect(result.success).toBe(false)
     expect(result.error?.issues[0].path).toContain('nextDueDate')
+  })
+})
+
+describe('recurring obligation validation', () => {
+  const validObligation = {
+    name: 'Internet',
+    expectedAmount: '25000',
+    currency: 'CRC',
+    categoryId: '550e8400-e29b-41d4-a716-446655440000',
+    transactionType: 'personal',
+    paymentAccountId: '',
+    nextDueDate: '2026-11-15',
+    intervalMonths: '1',
+    notes: '',
+  }
+
+  it.each(['1', '2', '3', '6', '12'])('accepts a recurrence interval of %s months', intervalMonths => {
+    expect(recurringObligationSchema.safeParse({ ...validObligation, intervalMonths }).success).toBe(true)
+  })
+
+  it('rejects an unsupported recurrence interval', () => {
+    const result = recurringObligationSchema.safeParse({ ...validObligation, intervalMonths: '4' })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].path).toContain('intervalMonths')
+  })
+
+  it('rejects an invalid currency, missing category, or impossible due date', () => {
+    for (const invalid of [
+      { ...validObligation, currency: 'EUR' },
+      { ...validObligation, categoryId: '' },
+      { ...validObligation, nextDueDate: '2026-02-30' },
+    ]) {
+      expect(recurringObligationSchema.safeParse(invalid).success).toBe(false)
+    }
+  })
+
+  it('requires a positive real amount when recording a payment', () => {
+    expect(recordObligationPaymentSchema.safeParse({ amount: '20000' }).success).toBe(true)
+    expect(recordObligationPaymentSchema.safeParse({ amount: '0' }).success).toBe(false)
+    expect(recordObligationPaymentSchema.safeParse({ amount: '-1' }).success).toBe(false)
   })
 })
 

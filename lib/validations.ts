@@ -105,6 +105,31 @@ export const debtSchema = z.object({
   notes: z.string().trim().max(500, 'Las notas no pueden exceder 500 caracteres').optional().or(z.literal('')),
 })
 
+const recurrenceIntervalSchema = z.coerce.number().pipe(z.union([
+  z.literal(1), z.literal(2), z.literal(3), z.literal(6), z.literal(12),
+]))
+
+export const recurringObligationSchema = z.object({
+  name: z.string().trim().min(2, 'El nombre debe tener al menos 2 caracteres').max(80, 'El nombre no puede exceder 80 caracteres'),
+  expectedAmount: z.coerce.number().finite('El monto debe ser válido').positive('El monto esperado debe ser mayor a 0'),
+  currency: z.enum(['CRC', 'USD'], { error: 'Moneda inválida' }),
+  categoryId: z.string().uuid('Seleccioná una categoría válida'),
+  transactionType: z.enum(['personal', 'household', 'reimbursement'], { error: 'Tipo de transacción inválido' }),
+  paymentAccountId: z.string().uuid('Cuenta inválida').optional().or(z.literal('')),
+  nextDueDate: debtNextDueDateSchema.shape.nextDueDate,
+  intervalMonths: recurrenceIntervalSchema,
+  notes: z.string().trim().max(500, 'Las notas no pueden exceder 500 caracteres').optional().or(z.literal('')),
+})
+
+export const recordObligationPaymentSchema = z.object({
+  amount: z.coerce.number()
+    .finite('El monto debe ser válido')
+    .positive('El monto pagado debe ser mayor a 0'),
+})
+
+export type RecurringObligationFormValues = z.infer<typeof recurringObligationSchema>
+export type RecordObligationPaymentValues = z.infer<typeof recordObligationPaymentSchema>
+
 export const savingsFundSchema = z.object({
   name: z.string()
     .trim()
