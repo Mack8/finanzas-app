@@ -261,6 +261,13 @@ export async function deleteTransactionAction(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { status: 'error', message: 'Tu sesión ya no es válida.' }
 
+  const { data: transaction, error: lookupError } = await supabase.from('transactions')
+    .select('scheduled_due_date').eq('id', id).eq('user_id', user.id).maybeSingle()
+  if (lookupError || !transaction) return { status: 'error', message: 'No se encontró la transacción.' }
+  if (transaction.scheduled_due_date) {
+    return { status: 'error', message: 'Los pagos programados no se pueden eliminar del historial.' }
+  }
+
   const { error } = await supabase
     .from('transactions').delete().eq('id', id).eq('user_id', user.id)
 

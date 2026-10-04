@@ -138,7 +138,7 @@ export function PaymentsList({
                 {isPending && reminder.kind === 'debt' && debt && (
                   <div className="flex shrink-0 flex-wrap gap-2">
                     {reminder.dueDate ? (
-                      <MarkPaidButton debtId={debt.id} debtName={debt.name} paidInstallments={debt.paid_installments} totalInstallments={debt.total_installments} />
+                      <MarkPaidButton debtId={debt.id} debtName={debt.name} scheduledDueDate={reminder.dueDate} paidInstallments={debt.paid_installments} totalInstallments={debt.total_installments} />
                     ) : (
                       <ConfigureDebtDueDateButton debtId={reminder.sourceId} debtName={reminder.name} />
                     )}
@@ -150,6 +150,7 @@ export function PaymentsList({
                     <FormDialog triggerLabel="Registrar pago" title={`Registrar pago · ${obligation.name}`}>
                       <RecordObligationPaymentForm
                         obligationId={obligation.id}
+                        scheduledDueDate={reminder.dueDate!}
                         expectedAmount={obligation.expected_amount}
                         currency={obligation.currency}
                         latestExchangeRate={latestExchangeRate}

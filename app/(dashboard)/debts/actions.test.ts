@@ -63,7 +63,9 @@ describe('markInstallmentPaidAction', () => {
 
   it('settles the current due date through the atomic debt RPC', async () => {
     const rpc = configureClient()
-    const result = await markInstallmentPaidAction('debt-1', { status: 'idle' }, new FormData())
+    const formData = new FormData()
+    formData.set('scheduledDueDate', '2026-10-31')
+    const result = await markInstallmentPaidAction('debt-1', { status: 'idle' }, formData)
 
     expect(result.status).toBe('success')
     expect(rpc).toHaveBeenCalledWith('pay_debt_installment', expect.objectContaining({
@@ -72,6 +74,22 @@ describe('markInstallmentPaidAction', () => {
       p_amount: 25000,
       p_currency: 'CRC',
     }))
+  })
+
+  it('rejects replaying a debt payment form after its displayed occurrence changed', async () => {
+    const rpc = configureClient()
+    const formData = new FormData()
+    formData.set('scheduledDueDate', '2026-10-31')
+    mocks.createClient.mockResolvedValueOnce({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }) },
+      from: () => fluentQuery({ ...debt, next_due_date: '2026-11-30', due_day: 31 }),
+      rpc,
+    })
+
+    const result = await markInstallmentPaidAction('debt-1', { status: 'idle' }, formData)
+
+    expect(result.status).toBe('error')
+    expect(rpc).not.toHaveBeenCalled()
   })
 
   it('does not record a legacy debt installment until its due date is configured', async () => {

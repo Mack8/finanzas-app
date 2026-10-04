@@ -2,16 +2,10 @@ import { redirect } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { PaymentsList } from '@/components/payments/PaymentsList'
 import { getLatestExchangeRate } from '@/lib/bccr/exchange-rate'
-import { classifyDueDate } from '@/lib/payment-schedule'
+import { classifyDueDate, monthlyDueDatesInWindow } from '@/lib/payment-schedule'
 import { getTodayCR } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
 import type { Debt, PaymentAccount, PaymentReminder, RecurringObligation, Transaction } from '@/types/domain'
-
-function monthlyDueDate(today: string, dueDay: number) {
-  const [year, month] = today.split('-').map(Number)
-  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
-  return `${year}-${String(month).padStart(2, '0')}-${String(Math.min(dueDay, lastDay)).padStart(2, '0')}`
-}
 
 export default async function PaymentsPage() {
   const supabase = await createClient()
@@ -41,6 +35,17 @@ export default async function PaymentsPage() {
       .in('type', ['fixed_expense', 'variable_expense'])
       .order('sort_order', { ascending: true }),
   ])
+
+  if (debtsResult.error || obligationsResult.error || accountsResult.error || transactionsResult.error || categoriesResult.error) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Pagos" description="Cuotas, servicios y próximos vencimientos en un solo lugar." />
+        <div role="alert" className="rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger">
+          No se pudieron cargar los pagos. Actualizá la página para volver a intentarlo.
+        </div>
+      </div>
+    )
+  }
 
   const debts = (debtsResult.data ?? []) as Debt[]
   const obligations = (obligationsResult.data ?? []) as RecurringObligation[]
@@ -96,12 +101,13 @@ export default async function PaymentsPage() {
   }
 
   for (const account of accounts.filter(item => item.is_active && item.type === 'credit_card' && item.payment_due_day)) {
-    const dueDate = monthlyDueDate(today, account.payment_due_day!)
-    reminders.push({
-      id: `card:${account.id}:${dueDate}`, kind: 'card', name: account.name,
-      sourceId: account.id, dueDate, status: classifyDueDate(dueDate, today, false),
-      amount: null, currency: null, paymentAccountId: account.id,
-    })
+    for (const dueDate of monthlyDueDatesInWindow(today, account.payment_due_day!)) {
+      reminders.push({
+        id: `card:${account.id}:${dueDate}`, kind: 'card', name: account.name,
+        sourceId: account.id, dueDate, status: classifyDueDate(dueDate, today, false),
+        amount: null, currency: null, paymentAccountId: account.id,
+      })
+    }
   }
 
   let latestExchangeRate: { usd_to_crc: number } | null = null

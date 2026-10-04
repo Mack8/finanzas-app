@@ -12,13 +12,14 @@ import { markInstallmentPaidAction, type MarkPaidState } from '@/app/(dashboard)
 type Props = {
   debtId: string
   debtName: string
+  scheduledDueDate: string
   paidInstallments: number
   totalInstallments: number
 }
 
 const initialState: MarkPaidState = { status: 'idle' }
 
-export function MarkPaidButton({ debtId, debtName, paidInstallments, totalInstallments }: Props) {
+export function MarkPaidButton({ debtId, debtName, scheduledDueDate, paidInstallments, totalInstallments }: Props) {
   const [open, setOpen] = useState(false)
   const [formKey, setFormKey] = useState(0)
   const boundAction = useMemo(() => markInstallmentPaidAction.bind(null, debtId), [debtId])
@@ -52,6 +53,7 @@ export function MarkPaidButton({ debtId, debtName, paidInstallments, totalInstal
           </DialogDescription>
         </DialogHeader>
         <form key={formKey} action={formAction}>
+          <input type="hidden" name="scheduledDueDate" value={scheduledDueDate} />
           {state.message && <p aria-live="polite" className="mb-3 text-sm text-danger">{state.message}</p>}
           <DialogFooter showCloseButton>
             <Button type="submit" disabled={pending}>

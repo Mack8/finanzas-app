@@ -36,6 +36,7 @@ export function CreateObligationForm({ categories, accounts, latestExchangeRate,
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {obligation && <input type="hidden" name="loadedNextDueDate" value={obligation.next_due_date} />}
       <div className="space-y-2">
         <Label htmlFor="obligation-name">Nombre</Label>
         <Input id="obligation-name" name="name" placeholder="Ej. Internet, electricidad" defaultValue={obligation?.name} required maxLength={80} />

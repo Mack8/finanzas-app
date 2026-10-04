@@ -16,6 +16,7 @@ import type { CurrencyCode } from '@/types/database'
 
 type Props = {
   obligationId: string
+  scheduledDueDate: string
   expectedAmount: number
   currency: CurrencyCode
   latestExchangeRate: { usd_to_crc: number } | null
@@ -23,7 +24,7 @@ type Props = {
 
 const initialState: RecurringObligationActionState = { status: 'idle' }
 
-export function RecordObligationPaymentForm({ obligationId, expectedAmount, currency, latestExchangeRate }: Props) {
+export function RecordObligationPaymentForm({ obligationId, scheduledDueDate, expectedAmount, currency, latestExchangeRate }: Props) {
   const { setOpen, setPending } = useFormDialogControls()
   const boundAction = useMemo(() => recordRecurringObligationPaymentAction.bind(null, obligationId), [obligationId])
   const [state, formAction, pending] = useClosingActionState(boundAction, initialState, setOpen)
@@ -32,6 +33,7 @@ export function RecordObligationPaymentForm({ obligationId, expectedAmount, curr
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <input type="hidden" name="scheduledDueDate" value={scheduledDueDate} />
       <p className="text-sm text-muted-foreground">Monto esperado: <span className="font-medium text-foreground">{formatMoney(expectedAmount, currency)}</span>. Ajustalo al importe que pagaste realmente.</p>
       <div className="space-y-2">
         <Label htmlFor="obligation-paid-amount">Monto pagado</Label>

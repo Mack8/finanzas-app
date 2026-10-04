@@ -85,6 +85,7 @@ function obligationForm(overrides: Record<string, string> = {}) {
     transactionType: 'personal',
     paymentAccountId: '',
     nextDueDate: '2026-10-03',
+    loadedNextDueDate: obligation.next_due_date,
     intervalMonths: '1',
     notes: '',
     ...overrides,
@@ -120,6 +121,32 @@ describe('recurring obligation actions', () => {
     expect(mocks.updates[0]).toMatchObject({ table: 'recurring_obligations', value: { interval_months: 3, next_due_date: '2026-12-31', due_day: 31 } })
   })
 
+  it('preserves the original month-end anchor when editing a clamped February occurrence', async () => {
+    configureClient({ obligation: { ...obligation, next_due_date: '2026-02-28', due_day: 31 } })
+
+    const result = await updateRecurringObligationAction(
+      'obligation-1',
+      { status: 'idle' },
+      obligationForm({ nextDueDate: '2026-02-28', loadedNextDueDate: '2026-02-28', notes: 'updated note' }),
+    )
+
+    expect(result.status).toBe('success')
+    expect(mocks.updates[0].value.due_day).toBe(31)
+  })
+
+  it('rejects a stale edit form after another session advances the schedule', async () => {
+    configureClient({ obligation: { ...obligation, next_due_date: '2026-11-03' } })
+
+    const result = await updateRecurringObligationAction(
+      'obligation-1',
+      { status: 'idle' },
+      obligationForm({ loadedNextDueDate: '2026-10-03', nextDueDate: '2026-10-03' }),
+    )
+
+    expect(result.status).toBe('error')
+    expect(mocks.updates).toHaveLength(0)
+  })
+
   it('deactivates an owned obligation', async () => {
     const result = await deactivateRecurringObligationAction('obligation-1', { status: 'idle' }, new FormData())
     expect(result.status).toBe('success')
@@ -129,6 +156,7 @@ describe('recurring obligation actions', () => {
   it('records the actual variable amount against the current overdue occurrence', async () => {
     const formData = new FormData()
     formData.set('amount', '23750')
+    formData.set('scheduledDueDate', '2026-10-03')
     const result = await recordRecurringObligationPaymentAction('obligation-1', { status: 'idle' }, formData)
     expect(result.status).toBe('success')
     expect(mocks.rpc).toHaveBeenCalledWith('pay_recurring_obligation', expect.objectContaining({
@@ -138,6 +166,18 @@ describe('recurring obligation actions', () => {
       p_amount_crc: 23750,
       p_currency: 'CRC',
     }))
+  })
+
+  it('rejects a replay from a stale payment form after the schedule advanced', async () => {
+    const formData = new FormData()
+    formData.set('amount', '23750')
+    formData.set('scheduledDueDate', '2026-10-03')
+    configureClient({ obligation: { ...obligation, next_due_date: '2026-11-03' } })
+
+    const result = await recordRecurringObligationPaymentAction('obligation-1', { status: 'idle' }, formData)
+
+    expect(result.status).toBe('error')
+    expect(mocks.rpc).not.toHaveBeenCalled()
   })
 
   it('rejects a non-positive payment before creating a transaction', async () => {

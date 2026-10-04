@@ -38,7 +38,7 @@ it('prefills the expected amount but lets the user submit the actual variable pa
   const user = userEvent.setup()
   render(
     <FormDialog triggerLabel="Registrar pago" title="Registrar pago">
-      <RecordObligationPaymentForm obligationId="obligation-1" expectedAmount={25000} currency="CRC" latestExchangeRate={null} />
+      <RecordObligationPaymentForm obligationId="obligation-1" scheduledDueDate="2026-10-03" expectedAmount={25000} currency="CRC" latestExchangeRate={null} />
     </FormDialog>,
   )
   await user.click(screen.getByRole('button', { name: 'Registrar pago' }))

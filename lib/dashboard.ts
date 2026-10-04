@@ -3,7 +3,7 @@ import type { CategoryType, CurrencyCode, TransactionType } from '@/types/databa
 import type { Database } from '@/types/database'
 import type { PaymentReminder } from '@/types/domain'
 import { roundMoney } from '@/lib/transactions'
-import { classifyDueDate } from '@/lib/payment-schedule'
+import { classifyDueDate, monthlyDueDatesInWindow } from '@/lib/payment-schedule'
 import { computeMonthlyIncomeCRC } from '@/lib/income'
 import { buildMonthlyTotals, groupExpensesByCategory } from '@/lib/reports'
 import type { MonthlyTotalsRow, CategoryExpense } from '@/lib/reports'
@@ -242,12 +242,6 @@ function addDays(date: string, days: number) {
   return `${target.getUTCFullYear()}-${String(target.getUTCMonth() + 1).padStart(2, '0')}-${String(target.getUTCDate()).padStart(2, '0')}`
 }
 
-function monthlyDueDate(today: string, dueDay: number) {
-  const [year, month] = today.split('-').map(Number)
-  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
-  return `${year}-${String(month).padStart(2, '0')}-${String(Math.min(dueDay, lastDay)).padStart(2, '0')}`
-}
-
 export function buildUpcomingPayments({ today, debts, obligations, accounts }: {
   today: string
   debts: UpcomingDebt[]
@@ -277,13 +271,14 @@ export function buildUpcomingPayments({ today, debts, obligations, accounts }: {
   }
   for (const account of accounts) {
     if (!account.is_active || account.type !== 'credit_card' || !account.payment_due_day) continue
-    const dueDate = monthlyDueDate(today, account.payment_due_day)
-    if (dueDate > windowEnd) continue
-    reminders.push({
-      id: `card:${account.id}:${dueDate}`, kind: 'card', name: account.name, sourceId: account.id,
-      dueDate, status: classifyDueDate(dueDate, today, false), amount: null, currency: null,
-      paymentAccountId: account.id,
-    })
+    for (const dueDate of monthlyDueDatesInWindow(today, account.payment_due_day)) {
+      if (dueDate > windowEnd) continue
+      reminders.push({
+        id: `card:${account.id}:${dueDate}`, kind: 'card', name: account.name, sourceId: account.id,
+        dueDate, status: classifyDueDate(dueDate, today, false), amount: null, currency: null,
+        paymentAccountId: account.id,
+      })
+    }
   }
   return reminders.toSorted((a, b) => {
     const statusOrder = { overdue: 0, upcoming: 1, paid: 2 }

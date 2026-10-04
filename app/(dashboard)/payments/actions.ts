@@ -142,6 +142,14 @@ export async function updateRecurringObligationAction(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { status: 'error', message: 'Tu sesión ya no es válida. Volvé a iniciar sesión.' }
 
+  const { data: current, error: lookupError } = await supabase.from('recurring_obligations')
+    .select('next_due_date, due_day')
+    .eq('id', id).eq('user_id', user.id).maybeSingle()
+  if (lookupError || !current) return { status: 'error', message: 'Pago recurrente no encontrado.' }
+  if (formData.get('loadedNextDueDate') !== current.next_due_date) {
+    return { status: 'error', message: 'El vencimiento cambió en otra pestaña. Actualizá la página antes de guardar.' }
+  }
+
   const parsed = recurringObligationSchema.safeParse(Object.fromEntries(formData))
   if (!parsed.success) {
     return {
@@ -162,9 +170,11 @@ export async function updateRecurringObligationAction(
     transaction_type: resolved.values.transactionType,
     payment_account_id: resolved.paymentAccountId,
     next_due_date: resolved.values.nextDueDate,
-    due_day: Number(resolved.values.nextDueDate.slice(-2)),
+    due_day: resolved.values.nextDueDate === current.next_due_date
+      ? current.due_day
+      : Number(resolved.values.nextDueDate.slice(-2)),
     interval_months: resolved.values.intervalMonths,
-  }).eq('id', id).eq('user_id', user.id).select('id').maybeSingle()
+  }).eq('id', id).eq('user_id', user.id).eq('next_due_date', current.next_due_date).select('id').maybeSingle()
 
   if (error || !data) return { status: 'error', message: 'No se pudo actualizar el pago recurrente.' }
   revalidateMoneyPaths('/payments')
@@ -210,6 +220,10 @@ export async function recordRecurringObligationPaymentAction(
     .eq('id', id).eq('user_id', user.id).maybeSingle()
   if (lookupError || !obligation) return { status: 'error', message: 'Pago recurrente no encontrado.' }
   if (!obligation.is_active) return { status: 'error', message: 'Este pago recurrente está inactivo.' }
+  const scheduledDueDate = formData.get('scheduledDueDate')
+  if (typeof scheduledDueDate !== 'string' || scheduledDueDate !== obligation.next_due_date) {
+    return { status: 'error', message: 'El vencimiento cambió en otra pestaña. Actualizá la página antes de pagar.' }
+  }
 
   const category = await resolveOwnedExpenseCategory(supabase, user.id, obligation.category_id)
   if (!category) return { status: 'error', message: 'La categoría guardada ya no es válida.' }
@@ -222,7 +236,7 @@ export async function recordRecurringObligationPaymentAction(
   const paidOn = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(new Date())
   const { error } = await supabase.rpc('pay_recurring_obligation', {
     p_obligation_id: obligation.id,
-    p_scheduled_due_date: obligation.next_due_date,
+    p_scheduled_due_date: scheduledDueDate,
     p_paid_on: paidOn,
     p_amount: parsedAmount.data.amount,
     p_amount_crc: amount.amountCRC,

@@ -239,4 +239,16 @@ describe('dashboard payment window', () => {
     ])
     expect(result[1]).toMatchObject({ amount: null, currency: null, kind: 'card' })
   })
+
+  it('includes the next card cycle when it falls inside the 30-day window', () => {
+    const result = buildUpcomingPayments({
+      today: '2026-10-25', debts: [], obligations: [],
+      accounts: [{ id: 'card-1', name: 'Visa', type: 'credit_card', payment_due_day: 15, is_active: true }],
+    })
+
+    expect(result.filter(item => item.kind === 'card').map(item => [item.dueDate, item.status])).toEqual([
+      ['2026-10-15', 'overdue'],
+      ['2026-11-15', 'upcoming'],
+    ])
+  })
 })

@@ -110,7 +110,7 @@ export async function createDebtAction(
 export async function markInstallmentPaidAction(
   id: string,
   _prevState: MarkPaidState,
-  _formData: FormData
+  formData: FormData
 ): Promise<MarkPaidState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -126,6 +126,10 @@ export async function markInstallmentPaidAction(
   if (!debtRow) return { status: 'error', message: 'Deuda no encontrada.' }
   if (!debtRow.next_due_date || !debtRow.due_day) {
     return { status: 'error', message: 'Configurá la próxima fecha de vencimiento antes de registrar la cuota.' }
+  }
+  const scheduledDueDate = formData.get('scheduledDueDate')
+  if (typeof scheduledDueDate !== 'string' || scheduledDueDate !== debtRow.next_due_date) {
+    return { status: 'error', message: 'El vencimiento cambió en otra pestaña. Actualizá la página antes de pagar.' }
   }
   if (!debtRow.is_active || debtRow.paid_installments >= debtRow.total_installments) {
     return { status: 'error', message: 'Esta deuda ya está completamente pagada.' }
@@ -164,7 +168,7 @@ export async function markInstallmentPaidAction(
 
   const { error: paymentError } = await supabase.rpc('pay_debt_installment', {
     p_debt_id: debtRow.id,
-    p_scheduled_due_date: debtRow.next_due_date,
+    p_scheduled_due_date: scheduledDueDate,
     p_paid_on: payDate,
     p_amount: debtRow.monthly_amount,
     p_amount_crc: resolvedAmount.amountCRC,

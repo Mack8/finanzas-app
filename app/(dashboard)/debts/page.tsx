@@ -134,6 +134,7 @@ export default async function DebtsPage() {
                           <MarkPaidButton
                             debtId={debt.id}
                             debtName={debt.name}
+                            scheduledDueDate={debt.next_due_date!}
                             paidInstallments={debt.paid_installments}
                             totalInstallments={debt.total_installments}
                           />
