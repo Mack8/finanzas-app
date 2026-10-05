@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const integrityMigration = readFileSync('supabase/migrations/008_scheduled_payment_integrity.sql', 'utf8')
+const dateArithmeticMigration = readFileSync('supabase/migrations/009_immutable_payment_due_dates.sql', 'utf8')
 
 describe('scheduled payment database integrity migration', () => {
   it('rejects scheduled transaction references to another user’s debt or obligation', () => {
@@ -18,5 +19,10 @@ describe('scheduled payment database integrity migration', () => {
     expect(integrityMigration).toContain("if old.scheduled_due_date is not null then")
     expect(integrityMigration).toContain('new.scheduled_due_date is distinct from old.scheduled_due_date')
     expect(integrityMigration).toContain('before insert or update or delete on public.transactions')
+  })
+
+  it('uses timezone-independent date arithmetic in the immutable due-date RPC', () => {
+    expect(dateArithmeticMigration).toContain('make_date(')
+    expect(dateArithmeticMigration).not.toContain("date_trunc('month', p_current_due_date)")
   })
 })
