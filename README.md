@@ -1,8 +1,10 @@
 # Finanzas App
 
+**English:** a personal finance app built with Next.js 16, React 19, TypeScript and Supabase (Postgres with per-user row-level security). It tracks income, expenses, cards, debts, savings funds and recurring payments, shows totals in Costa Rican colones (CRC) and converts USD using the central bank (BCCR) exchange rate. A local worker can read purchase alerts from three Costa Rican banks, parse them with per-bank rules and record them as transactions. The project has 400+ automated tests (Vitest). All data in this repository is synthetic. The detailed documentation below is in Spanish.
+
 App personal de control de finanzas: ingresos, gastos, tarjetas, deudas y fondos de ahorro, con totales en colones (CRC) y conversión de USD con la tasa del BCCR.
 
-> Repositorio privado, en desarrollo. El trabajo activo ocurre en la rama `dev`; `main` se mantiene estable.
+> Proyecto personal en desarrollo. Los datos de ejemplo, los correos de prueba y los números de tarjeta o autorización de este repositorio son sintéticos.
 
 ## Stack
 
