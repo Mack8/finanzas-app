@@ -1,0 +1,20 @@
+Header BAC
+Hola NOMBRE APELLIDO
+A continuación le detallamos la transacción realizada:
+Comercio:    DLC* DIDI FOODS
+Ciudad y país:    SAN JOSE, Costa Rica
+Fecha:    Sep 29, 2026, 19:47
+VISA:    ************7001
+Autorización:    100001
+Referencia:    900000000001
+Tipo de Transacción:    COMPRA
+Monto:    CRC 3,730.00
+BANNER PROMOCIONAL
+Icono Alarma    
+¿Tiene dudas sobre esta transacción?
+
+Puede contactarnos vía WhatsApp presionando aquí. O bien escríbanos al 8742-9595 agregando la palabra "alerta".
+
+Comunicado válido únicamente para Costa Rica.
+
+TODOS LOS DERECHOS RESERVADOS. 2026 © BAC INTERNATIONAL BANK

@@ -1,0 +1,21 @@
+Hola NOMBRE APELLIDO
+
+¡Tu transacción fue realizada con éxito!
+
+Te compartimos el detalle:
+
+Comercio    TACO BELL CITY MALL ALAJUELA CRI
+Tipo de Comercio    RESTAURANTS
+Ciudad/País    COSTA RICA
+Fecha/hora    29 sep 2026 / 13:05
+Número de tarjeta    ****-****-****-7003
+Número de autorización    100003
+Número de referencia    9000000003
+Monto    
+CRC: 2,500.00
+
+Viví experiencias y promociones exclusivas con tus tarjetas de débito y crédito
+
+Descargá nuestra nueva App: Promerica Móvil
+
+Este correo se genera automáticamente, por favor no contestarlo.
