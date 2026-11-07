@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -15,7 +15,7 @@
     "supabase:status": "npx supabase status",
     "supabase:env": "tsx scripts/sync-local-supabase-env.ts",
     "supabase:verify": "tsx scripts/verify-local-supabase.ts",
-    "dev:local": "npm run supabase:start && npm run supabase:env && next dev",
+    "dev:local": "npm run supabase:start && npm run supabase:env && next dev --webpack",
     "worker": "tsx worker/main.ts",
     "worker:dry": "tsx worker/main.ts --dry-run",
     "worker:dry:remote": "node --env-file=.env.remote.local --import tsx worker/main.ts --dry-run",
