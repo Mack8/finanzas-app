@@ -17,6 +17,14 @@ App personal de control de finanzas: ingresos, gastos, tarjetas, deudas y fondos
 
 Las transacciones (`transactions`) son la fuente de verdad de lo que realmente entró o salió. Deudas, fondos de ahorro e `income_config` son planificación: cuando un evento se materializa se crea o enlaza una transacción. Detalle, KPIs y reglas en [`docs/money-model.md`](docs/money-model.md).
 
+Estado del proyecto, comprobaciones recientes y próximos pasos: [`docs/estado-proyecto.md`](docs/estado-proyecto.md).
+
+## Pagos y vencimientos
+
+La sección **Pagos** reúne cuotas de deuda, obligaciones recurrentes y recordatorios de tarjetas. Permite ajustar el importe real de un servicio, consultar pagos registrados y configurar la próxima fecha de deudas antiguas. Las frecuencias admitidas son 1, 2, 3, 6 y 12 meses.
+
+Registrar un pago crea el movimiento y avanza el vencimiento dentro de una sola transacción de base de datos. El día ancla se conserva al pasar por meses cortos; los reintentos no duplican el mismo vencimiento. El dashboard reserva los compromisos impagos del mes y deja de reservarlos cuando se pagan. Las tarjetas muestran únicamente recordatorios sin importe ni liquidación contable.
+
 ## Dashboard: control del periodo
 
 El dashboard presenta primero el margen seguro: saldo registrado del mes menos cuotas y aportes pendientes. Luego muestra una acción prioritaria, el ritmo de gasto, la categoría que más aporta al gasto y la salud de ahorro y deudas. El horizonte es fin de mes, incluido hoy.
@@ -35,7 +43,7 @@ npm run supabase:reset
 npm run dev:local
 ```
 
-La app queda en http://localhost:3000. El reset aplica las migraciones `001` a `005` y crea únicamente datos sintéticos, incluido el usuario `dev@finanzas.local` con contraseña `finanzas-local-dev`.
+La app queda en http://localhost:3000. El reset aplica las migraciones `001` a `009` y crea únicamente datos sintéticos, incluido el usuario `dev@finanzas.local` con contraseña `finanzas-local-dev`.
 
 ### Ciclo diario y servicios locales
 
@@ -60,7 +68,7 @@ Staging y producción usarán sus propias variables configuradas directamente en
 
 ### Base de datos
 
-Las migraciones están en `supabase/migrations/` y se aplican en orden numérico (`001` … `005`). `supabase/seed.sql` contiene exclusivamente datos de desarrollo repetibles. Al registrarse un usuario, un trigger crea sus categorías por defecto.
+Las migraciones están en `supabase/migrations/` y se aplican en orden numérico (`001` … `009`). `supabase/seed.sql` contiene exclusivamente datos de desarrollo repetibles. Al registrarse un usuario, un trigger crea sus categorías por defecto.
 
 ## Scripts
 
